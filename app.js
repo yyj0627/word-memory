@@ -602,32 +602,32 @@ function createWordWithTooltip(word, showDefinitionInline = false) {
     return html;
 }
 
-// 语音播放功能（点击触发）
+// 语音播放功能（点击触发）- 使用有道词典真人发音
 function speakWord(word) {
-    // 使用浏览器内置的语音合成API
-    if ('speechSynthesis' in window) {
-        // 取消之前的语音
-        window.speechSynthesis.cancel();
-        
-        const utterance = new SpeechSynthesisUtterance(word);
-        utterance.lang = 'en-US';
-        utterance.rate = 0.9;
-        utterance.pitch = 1;
-        
-        // 尝试获取英语语音
-        const voices = window.speechSynthesis.getVoices();
-        const enVoice = voices.find(v => v.lang.startsWith('en'));
-        if (enVoice) {
-            utterance.voice = enVoice;
-        }
-        
-        window.speechSynthesis.speak(utterance);
+    // 使用有道词典的真人发音（美式）
+    const audioUrl = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&type=2`;
+    
+    // 停止之前的音频
+    if (window.currentAudio) {
+        window.currentAudio.pause();
+        window.currentAudio = null;
     }
+    
+    const audio = new Audio(audioUrl);
+    window.currentAudio = audio;
+    
+    audio.play().catch(err => {
+        console.log('有道发音失败，使用备用方案:', err);
+        // 备用：浏览器内置语音
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(word);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.85;
+            window.speechSynthesis.speak(utterance);
+        }
+    });
 }
-
-// 预加载语音
-if ('speechSynthesis' in window) {
-    window.speechSynthesis.getVoices();
 }
 
 function renderAnnotatedStory() {
