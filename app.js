@@ -582,6 +582,9 @@ function renderStory() {
     renderPlainStory();
     renderChineseStory();
     renderQuizStory();
+    
+    // 后台预加载词根词缀
+    preloadEtymology();
 }
 
 // 创建带语音的单词元素
@@ -646,6 +649,99 @@ function loadEtymologyCache() {
 
 function saveEtymologyCache() {
     localStorage.setItem(ETYMOLOGY_KEY, JSON.stringify(etymologyCache));
+}
+
+// 预加载所有当前单词的词根词缀
+async function preloadEtymology() {
+    const settings = loadSettings();
+    if (!settings.apiKey || currentWords.length === 0) return;
+    
+    // 找出未缓存的单词
+    const uncachedWords = currentWords.filter(w => !etymologyCache[w.toLowerCase()]);
+    if (uncachedWords.length === 0) return;
+    
+    console.log('后台预加载词根词缀:', uncachedWords);
+    
+    // 批量请求词根词缀（一次请求多个单词）
+    await fetchEtymologyBatch(uncachedWords);
+}
+
+// 批量获取词根词缀
+async function fetchEtymologyBatch(words) {
+    const settings = loadSettings();
+    if (!settings.apiKey || words.length === 0) return;
+    
+    const provider = settings.provider || 'openai';
+    let apiUrl, model;
+    
+    if (provider === 'custom') {
+        apiUrl = settings.customUrl;
+        model = settings.model || 'gpt-3.5-turbo';
+    } else {
+        apiUrl = API_CONFIGS[provider].url;
+        model = settings.model || API_CONFIGS[provider].defaultModel;
+    }
+    
+    const wordList = words.slice(0, 10).join(', '); // 最多10个词
+    
+    const prompt = `分析以下英文单词的词根词缀：${wordList}
+
+返回JSON数组（不要markdown代码块）：
+[{"word":"单词","parts":[{"part":"词根/词缀","meaning":"含义","type":"root/prefix/suffix"}],"origin":"词源","analysis":"说明"}]
+
+要求简洁，每个单词的analysis不超过15字。`;
+
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15秒超时
+        
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${settings.apiKey}`
+            },
+            body: JSON.stringify({
+                model: model,
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.2
+            }),
+            signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const content = data.choices[0].message.content;
+        
+        // 解析JSON数组
+        let etymologies;
+        try {
+            etymologies = JSON.parse(content);
+        } catch (e) {
+            const jsonMatch = content.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+                etymologies = JSON.parse(jsonMatch[0]);
+            } else {
+                return;
+            }
+        }
+        
+        // 缓存所有结果
+        if (Array.isArray(etymologies)) {
+            etymologies.forEach(ety => {
+                if (ety.word) {
+                    etymologyCache[ety.word.toLowerCase()] = ety;
+                }
+            });
+            saveEtymologyCache();
+            console.log('词根词缀预加载完成');
+        }
+    } catch (err) {
+        console.log('批量获取词根词缀失败:', err.message);
+    }
 }
 
 function showEtymologyPopup(word, event) {
@@ -736,24 +832,14 @@ async function fetchEtymology(word) {
         model = settings.model || API_CONFIGS[provider].defaultModel;
     }
     
-    const prompt = `分析英文单词 "${word}" 的词根词缀构成。
-
-请用以下JSON格式返回（不要包含markdown代码块标记）：
-{
-  "word": "${word}",
-  "parts": [
-    {"part": "词根或词缀", "meaning": "含义", "type": "root/prefix/suffix"}
-  ],
-  "origin": "词源语言（如拉丁语、希腊语等）",
-  "analysis": "简短的构词分析说明"
-}
-
-注意：
-- parts数组包含该单词的所有词根、前缀、后缀
-- 如果是简单词没有词根词缀，parts可以只包含词根本身
-- analysis要简洁，一两句话即可`;
+    // 简化的 prompt
+    const prompt = `单词"${word}"的词根词缀分析，返回JSON（无代码块）：
+{"word":"${word}","parts":[{"part":"词根/词缀","meaning":"含义","type":"root/prefix/suffix"}],"origin":"词源","analysis":"简短说明"}`;
 
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+        
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
@@ -763,9 +849,12 @@ async function fetchEtymology(word) {
             body: JSON.stringify({
                 model: model,
                 messages: [{ role: 'user', content: prompt }],
-                temperature: 0.3
-            })
+                temperature: 0.2
+            }),
+            signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
@@ -803,7 +892,11 @@ async function fetchEtymology(word) {
     } catch (err) {
         console.error('获取词根词缀失败:', err);
         const contentEl = document.getElementById('etymologyContent');
-        contentEl.innerHTML = '<div class="etymology-section"><span class="etymology-meaning">获取词根词缀信息失败</span></div>';
+        if (err.name === 'AbortError') {
+            contentEl.innerHTML = '<div class="etymology-section"><span class="etymology-meaning">请求超时，请重试</span></div>';
+        } else {
+            contentEl.innerHTML = '<div class="etymology-section"><span class="etymology-meaning">获取失败，请重试</span></div>';
+        }
     }
 }
 
