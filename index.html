@@ -190,6 +190,21 @@ computer
         </div>
     </div>
 
+    <!-- 划词翻译浮窗 -->
+    <div class="lookup-popup" id="lookupPopup">
+        <div class="lookup-header">
+            <span class="lookup-word" id="lookupWord"></span>
+            <button class="lookup-audio" id="lookupAudio" onclick="playLookupWord()">🔊</button>
+            <button class="lookup-close" onclick="hideLookupPopup()">&times;</button>
+        </div>
+        <div class="lookup-content" id="lookupContent">
+            <div class="lookup-loading">查询中...</div>
+        </div>
+        <div class="lookup-actions">
+            <button class="lookup-add-btn" onclick="addLookupWordToList()">加入生词本</button>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>

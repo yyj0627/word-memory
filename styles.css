@@ -1083,3 +1083,132 @@ body {
         max-width: calc(100vw - 40px);
     }
 }
+
+/* 划词翻译浮窗 */
+.lookup-popup {
+    display: none;
+    position: fixed;
+    z-index: 2001;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    min-width: 250px;
+    max-width: 320px;
+    border: 1px solid #ddd;
+    animation: fadeIn 0.2s ease;
+}
+
+.lookup-popup.show {
+    display: block;
+}
+
+.lookup-header {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    border-bottom: 1px solid #eee;
+    background: #f8f8f8;
+    border-radius: 8px 8px 0 0;
+    gap: 8px;
+}
+
+.lookup-word {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #222;
+    flex: 1;
+}
+
+.lookup-audio {
+    background: none;
+    border: none;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.lookup-audio:hover {
+    background: #eee;
+}
+
+.lookup-close {
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    color: #999;
+    padding: 0 5px;
+    line-height: 1;
+}
+
+.lookup-close:hover {
+    color: #333;
+}
+
+.lookup-content {
+    padding: 12px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #333;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.lookup-loading {
+    text-align: center;
+    color: #999;
+    padding: 10px;
+}
+
+.lookup-phonetic {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+}
+
+.lookup-definition {
+    margin-bottom: 6px;
+}
+
+.lookup-pos {
+    color: #888;
+    font-style: italic;
+    margin-right: 6px;
+}
+
+.lookup-actions {
+    padding: 8px 12px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.lookup-add-btn {
+    background: #222;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.lookup-add-btn:hover {
+    background: #000;
+}
+
+.lookup-add-btn.added {
+    background: #4CAF50;
+    cursor: default;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .lookup-popup {
+        min-width: 220px;
+        max-width: calc(100vw - 40px);
+    }
+}

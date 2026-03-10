@@ -4,10 +4,13 @@ let currentStory = '';
 let currentChineseStory = '';
 let currentDefinitions = {};
 let etymologyCache = {}; // 词根词缀缓存
+let lookupCache = {}; // 划词翻译缓存
+let currentLookupWord = ''; // 当前查询的单词
 const HISTORY_KEY = 'wordMemoryHistory';
 const SETTINGS_KEY = 'wordMemorySettings';
 const WRONG_WORDS_KEY = 'wordMemoryWrongWords';
 const ETYMOLOGY_KEY = 'wordMemoryEtymology'; // 词根词缀持久化存储
+const LOOKUP_KEY = 'wordMemoryLookup'; // 划词翻译持久化存储
 const MAX_HISTORY = 50;
 
 // API配置
@@ -67,6 +70,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initSettings();
     loadHistory();
     loadEtymologyCache();
+    loadLookupCache();
+    initLookupFeature();
 });
 
 // ==================== 图片上传与OCR ====================
@@ -1385,4 +1390,268 @@ function closeAllSidebars() {
     document.getElementById('historySidebar').classList.remove('show');
     document.getElementById('wrongWordsSidebar').classList.remove('show');
     document.getElementById('overlay').classList.remove('show');
+}
+
+// ==================== 划词翻译功能 ====================
+function loadLookupCache() {
+    const stored = localStorage.getItem(LOOKUP_KEY);
+    if (stored) {
+        try {
+            lookupCache = JSON.parse(stored);
+        } catch (e) {
+            lookupCache = {};
+        }
+    }
+}
+
+function saveLookupCache() {
+    // 限制缓存大小，最多保存500个单词
+    const keys = Object.keys(lookupCache);
+    if (keys.length > 500) {
+        const keysToRemove = keys.slice(0, keys.length - 500);
+        keysToRemove.forEach(k => delete lookupCache[k]);
+    }
+    localStorage.setItem(LOOKUP_KEY, JSON.stringify(lookupCache));
+}
+
+function initLookupFeature() {
+    // 监听文本选择事件
+    document.addEventListener('mouseup', handleTextSelection);
+    document.addEventListener('touchend', handleTextSelection);
+    
+    // 点击其他地方关闭弹窗
+    document.addEventListener('mousedown', (e) => {
+        const popup = document.getElementById('lookupPopup');
+        if (popup && !popup.contains(e.target)) {
+            hideLookupPopup();
+        }
+    });
+}
+
+function handleTextSelection(e) {
+    // 忽略点击弹窗内部
+    const lookupPopup = document.getElementById('lookupPopup');
+    const etymologyPopup = document.getElementById('etymologyPopup');
+    if ((lookupPopup && lookupPopup.contains(e.target)) || 
+        (etymologyPopup && etymologyPopup.contains(e.target))) {
+        return;
+    }
+    
+    // 延迟一点获取选中文本，确保选择完成
+    setTimeout(() => {
+        const selection = window.getSelection();
+        const selectedText = selection.toString().trim();
+        
+        // 检查是否是有效的英文单词（2-30个字母）
+        if (selectedText && /^[a-zA-Z]{2,30}$/.test(selectedText)) {
+            showLookupPopup(selectedText, e);
+        }
+    }, 10);
+}
+
+function showLookupPopup(word, event) {
+    const popup = document.getElementById('lookupPopup');
+    const wordEl = document.getElementById('lookupWord');
+    const contentEl = document.getElementById('lookupContent');
+    const addBtn = document.querySelector('.lookup-add-btn');
+    
+    currentLookupWord = word.toLowerCase();
+    wordEl.textContent = word;
+    
+    // 重置添加按钮状态
+    addBtn.textContent = '加入生词本';
+    addBtn.classList.remove('added');
+    
+    // 获取点击位置
+    let x, y;
+    if (event.changedTouches) {
+        x = event.changedTouches[0].clientX;
+        y = event.changedTouches[0].clientY;
+    } else {
+        x = event.clientX;
+        y = event.clientY;
+    }
+    
+    // 检查缓存
+    if (lookupCache[currentLookupWord]) {
+        contentEl.innerHTML = formatLookupResult(lookupCache[currentLookupWord]);
+    } else {
+        contentEl.innerHTML = '<div class="lookup-loading">查询中...</div>';
+        fetchWordDefinition(word);
+    }
+    
+    // 显示弹窗
+    popup.classList.add('show');
+    
+    // 计算位置
+    const popupRect = popup.getBoundingClientRect();
+    const padding = 10;
+    
+    let left = x + 10;
+    let top = y + 10;
+    
+    if (left + popupRect.width > window.innerWidth - padding) {
+        left = x - popupRect.width - 10;
+    }
+    if (top + popupRect.height > window.innerHeight - padding) {
+        top = y - popupRect.height - 10;
+    }
+    
+    left = Math.max(padding, left);
+    top = Math.max(padding, top);
+    
+    popup.style.left = left + 'px';
+    popup.style.top = top + 'px';
+}
+
+function hideLookupPopup() {
+    const popup = document.getElementById('lookupPopup');
+    popup.classList.remove('show');
+}
+
+function playLookupWord() {
+    if (currentLookupWord) {
+        const audioUrl = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(currentLookupWord)}&type=2`;
+        const audio = new Audio(audioUrl);
+        audio.play().catch(err => console.log('播放失败:', err));
+    }
+}
+
+async function fetchWordDefinition(word) {
+    const settings = loadSettings();
+    
+    if (!settings.apiKey) {
+        const contentEl = document.getElementById('lookupContent');
+        contentEl.innerHTML = '<div class="lookup-definition">请先在设置中配置API</div>';
+        return;
+    }
+    
+    const provider = settings.provider || 'openai';
+    let apiUrl, model;
+    
+    if (provider === 'custom') {
+        apiUrl = settings.customUrl;
+        model = settings.model || 'gpt-3.5-turbo';
+    } else {
+        apiUrl = API_CONFIGS[provider].url;
+        model = settings.model || API_CONFIGS[provider].defaultModel;
+    }
+    
+    const prompt = `翻译英文单词"${word}"，返回JSON（无代码块）：
+{"word":"${word}","phonetic":"音标","definitions":[{"pos":"词性","meaning":"中文释义"}]}
+要求：definitions包含主要词性和释义，简洁准确。`;
+
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${settings.apiKey}`
+            },
+            body: JSON.stringify({
+                model: model,
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.2
+            }),
+            signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        const content = data.choices[0].message.content;
+        
+        let result;
+        try {
+            result = JSON.parse(content);
+        } catch (e) {
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                result = JSON.parse(jsonMatch[0]);
+            } else {
+                throw new Error('解析失败');
+            }
+        }
+        
+        // 缓存结果
+        lookupCache[currentLookupWord] = result;
+        saveLookupCache();
+        
+        // 更新显示
+        const contentEl = document.getElementById('lookupContent');
+        const currentWord = document.getElementById('lookupWord').textContent.toLowerCase();
+        if (currentWord === currentLookupWord) {
+            contentEl.innerHTML = formatLookupResult(result);
+        }
+    } catch (err) {
+        console.error('查询单词失败:', err);
+        const contentEl = document.getElementById('lookupContent');
+        if (err.name === 'AbortError') {
+            contentEl.innerHTML = '<div class="lookup-definition">查询超时</div>';
+        } else {
+            contentEl.innerHTML = '<div class="lookup-definition">查询失败</div>';
+        }
+    }
+}
+
+function formatLookupResult(result) {
+    let html = '';
+    
+    if (result.phonetic) {
+        html += `<div class="lookup-phonetic">${result.phonetic}</div>`;
+    }
+    
+    if (result.definitions && result.definitions.length > 0) {
+        result.definitions.forEach(def => {
+            html += `<div class="lookup-definition">`;
+            if (def.pos) {
+                html += `<span class="lookup-pos">${def.pos}</span>`;
+            }
+            html += `${def.meaning}</div>`;
+        });
+    } else if (result.meaning) {
+        html += `<div class="lookup-definition">${result.meaning}</div>`;
+    }
+    
+    return html || '<div class="lookup-definition">暂无释义</div>';
+}
+
+function addLookupWordToList() {
+    if (!currentLookupWord) return;
+    
+    const addBtn = document.querySelector('.lookup-add-btn');
+    if (addBtn.classList.contains('added')) return;
+    
+    // 获取当前输入框的内容
+    const wordInput = document.getElementById('wordInput');
+    const currentText = wordInput.value.trim();
+    
+    // 检查是否已存在
+    const existingWords = currentText.split(/[\s,，、;；\n]+/).filter(w => w.trim());
+    if (existingWords.map(w => w.toLowerCase()).includes(currentLookupWord)) {
+        addBtn.textContent = '已存在';
+        addBtn.classList.add('added');
+        return;
+    }
+    
+    // 添加到输入框
+    if (currentText) {
+        wordInput.value = currentText + '\n' + currentLookupWord;
+    } else {
+        wordInput.value = currentLookupWord;
+    }
+    
+    // 触发字数统计更新
+    wordInput.dispatchEvent(new Event('input'));
+    
+    // 更新按钮状态
+    addBtn.textContent = '已添加';
+    addBtn.classList.add('added');
 }
