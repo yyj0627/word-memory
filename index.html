@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>背单词助手 - AI故事串联记忆法</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <h1>背单词助手</h1>
+            <p class="subtitle">用AI故事串联记忆法，让单词记忆更轻松</p>
+            <div class="header-buttons">
+                <button class="settings-btn" onclick="toggleSettings()">设置</button>
+                <button class="wrongwords-btn" onclick="toggleWrongWords()">错词本</button>
+                <button class="history-btn" onclick="toggleHistory()">历史记录</button>
+            </div>
+        </header>
+
+        <!-- 主要内容区 -->
+        <main class="main-content">
+            <!-- 输入区域 -->
+            <section class="input-section">
+                <h2>第一步：输入单词</h2>
+                
+                <!-- 图片上传区 -->
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">上传图片</div>
+                    <p>拖拽图片到这里，或点击上传</p>
+                    <p class="upload-hint">支持多张图片，自动OCR识别英文单词</p>
+                    <input type="file" id="imageInput" multiple accept="image/*" hidden>
+                </div>
+
+                <!-- OCR进度 -->
+                <div class="ocr-progress" id="ocrProgress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <p id="ocrStatus">正在识别...</p>
+                </div>
+
+                <!-- 单词输入框 -->
+                <div class="word-input-area">
+                    <label for="wordInput">单词列表（每行一个或用空格/逗号分隔）：</label>
+                    <textarea id="wordInput" placeholder="apple
+banana
+computer
+或者：apple, banana, computer"></textarea>
+                    <div class="word-count">已输入 <span id="wordCount">0</span> 个单词</div>
+                </div>
+
+                <button class="generate-btn" onclick="generateStory()">生成故事</button>
+            </section>
+
+            <!-- 故事生成区域 -->
+            <section class="story-section" id="storySection" style="display: none;">
+                <h2>第二步：学习故事</h2>
+                
+                <!-- Tab切换 -->
+                <div class="tabs">
+                    <button class="tab active" data-tab="annotated" onclick="switchTab('annotated')">带释义版</button>
+                    <button class="tab" data-tab="plain" onclick="switchTab('plain')">纯英文版</button>
+                    <button class="tab" data-tab="chinese" onclick="switchTab('chinese')">中文版</button>
+                    <button class="tab" data-tab="quiz" onclick="switchTab('quiz')">填空检测</button>
+                </div>
+
+                <!-- Tab内容 -->
+                <div class="tab-content">
+                    <!-- Tab 1: 带中文释义 -->
+                    <div class="tab-pane active" id="annotatedPane">
+                        <div class="story-content" id="annotatedStory"></div>
+                    </div>
+
+                    <!-- Tab 2: 纯英文版 -->
+                    <div class="tab-pane" id="plainPane">
+                        <div class="story-content" id="plainStory"></div>
+                    </div>
+
+                    <!-- Tab 3: 中文版 -->
+                    <div class="tab-pane" id="chinesePane">
+                        <div class="story-content chinese-story" id="chineseStory"></div>
+                    </div>
+
+                    <!-- Tab 4: 填空检测 -->
+                    <div class="tab-pane" id="quizPane">
+                        <div class="story-content" id="quizStory"></div>
+                        <div class="quiz-actions">
+                            <button class="submit-btn" onclick="submitQuiz()">提交答案</button>
+                            <button class="reset-btn" onclick="resetQuiz()">重新填写</button>
+                        </div>
+                        <div class="quiz-result" id="quizResult" style="display: none;"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- AI生成加载模态框 -->
+        <div class="modal" id="loadingModal">
+            <div class="modal-content loading-modal">
+                <div class="loading-spinner"></div>
+                <p class="loading-text">AI正在创作故事，请稍候...</p>
+                <p class="loading-hint" id="loadingHint">正在构思情节...</p>
+            </div>
+        </div>
+
+        <!-- API设置模态框 -->
+        <div class="modal" id="settingsModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>API 设置</h3>
+                    <button class="modal-close" onclick="toggleSettings()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="settings-group">
+                        <label>API 服务商：</label>
+                        <select id="apiProvider">
+                            <option value="siliconflow">硅基流动 (有免费额度)</option>
+                            <option value="deepseek">DeepSeek</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="custom">自定义兼容API</option>
+                        </select>
+                    </div>
+                    
+                    <div class="settings-group">
+                        <label>API Key：</label>
+                        <input type="password" id="apiKey" placeholder="sk-...">
+                    </div>
+                    
+                    <div class="settings-group" id="customUrlGroup" style="display: none;">
+                        <label>自定义 API URL：</label>
+                        <input type="text" id="customApiUrl" placeholder="https://api.example.com/v1/chat/completions">
+                    </div>
+                    
+                    <div class="settings-group">
+                        <label>模型：</label>
+                        <input type="text" id="modelName" placeholder="gpt-4o-mini">
+                    </div>
+                    
+                    <p class="settings-hint">API Key 仅保存在本地浏览器中，不会上传到任何服务器</p>
+                    <p class="settings-hint">硅基流动注册即送免费额度：<a href="https://cloud.siliconflow.cn" target="_blank">cloud.siliconflow.cn</a></p>
+                </div>
+                <div class="modal-footer">
+                    <button class="cancel-btn" onclick="toggleSettings()">取消</button>
+                    <button class="confirm-btn" onclick="saveSettings()">保存设置</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 历史记录侧边栏 -->
+        <aside class="history-sidebar" id="historySidebar">
+            <div class="sidebar-header">
+                <h3>历史记录</h3>
+                <button class="close-sidebar" onclick="toggleHistory()">&times;</button>
+            </div>
+            <div class="history-list" id="historyList"></div>
+        </aside>
+
+        <!-- 错词本侧边栏 -->
+        <aside class="wrongwords-sidebar" id="wrongWordsSidebar">
+            <div class="sidebar-header">
+                <h3>错词本</h3>
+                <button class="close-sidebar" onclick="toggleWrongWords()">&times;</button>
+            </div>
+            <div class="wrongwords-actions">
+                <button class="select-all-btn" onclick="selectAllWrongWords()">全选</button>
+                <button class="clear-selection-btn" onclick="clearWrongWordsSelection()">取消全选</button>
+                <button class="delete-selected-btn" onclick="deleteSelectedWrongWords()">删除选中</button>
+            </div>
+            <div class="wrongwords-list" id="wrongWordsList"></div>
+            <div class="wrongwords-footer">
+                <button class="generate-from-wrong-btn" onclick="generateFromWrongWords()">用选中的词生成故事</button>
+            </div>
+        </aside>
+
+        <!-- 遮罩层 -->
+        <div class="overlay" id="overlay" onclick="closeAllSidebars()"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,978 @@
+/* 全局样式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: #f5f5f5;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+/* 头部 */
+.header {
+    text-align: center;
+    color: #222;
+    margin-bottom: 30px;
+    position: relative;
+}
+
+.header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.subtitle {
+    font-size: 1.1rem;
+    color: #666;
+    margin-bottom: 15px;
+}
+
+.history-btn {
+    background: white;
+    border: 1px solid #ddd;
+    color: #333;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: all 0.3s;
+}
+
+.history-btn:hover {
+    background: #222;
+    color: white;
+    border-color: #222;
+}
+
+.header-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.settings-btn {
+    background: white;
+    border: 1px solid #ddd;
+    color: #333;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: all 0.3s;
+}
+
+.settings-btn:hover {
+    background: #222;
+    color: white;
+    border-color: #222;
+}
+
+.wrongwords-btn {
+    background: white;
+    border: 1px solid #ddd;
+    color: #333;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: all 0.3s;
+}
+
+.wrongwords-btn:hover {
+    background: #222;
+    color: white;
+    border-color: #222;
+}
+
+/* 主要内容区 */
+.main-content {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    border: 1px solid #eee;
+}
+
+/* 输入区域 */
+.input-section h2,
+.story-section h2 {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+}
+
+/* 上传区域 */
+.upload-area {
+    border: 3px dashed #ddd;
+    border-radius: 8px;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-bottom: 20px;
+}
+
+.upload-area:hover,
+.upload-area.dragover {
+    border-color: #333;
+    background: #fafafa;
+}
+
+.upload-icon {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.upload-area p {
+    color: #666;
+    margin: 5px 0;
+}
+
+.upload-hint {
+    font-size: 0.85rem;
+    color: #999 !important;
+}
+
+/* OCR进度 */
+.ocr-progress {
+    margin-bottom: 20px;
+}
+
+.progress-bar {
+    height: 8px;
+    background: #eee;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #222;
+    width: 0%;
+    transition: width 0.3s;
+}
+
+#ocrStatus {
+    text-align: center;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* 单词输入区 */
+.word-input-area {
+    margin-bottom: 20px;
+}
+
+.word-input-area label {
+    display: block;
+    color: #333;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+#wordInput {
+    width: 100%;
+    height: 150px;
+    padding: 15px;
+    border: 2px solid #eee;
+    border-radius: 10px;
+    font-size: 1rem;
+    resize: vertical;
+    transition: border-color 0.3s;
+}
+
+#wordInput:focus {
+    outline: none;
+    border-color: #333;
+}
+
+.word-count {
+    text-align: right;
+    color: #999;
+    font-size: 0.9rem;
+    margin-top: 8px;
+}
+
+.generate-btn {
+    width: 100%;
+    padding: 15px;
+    background: #222;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.generate-btn:hover {
+    background: #000;
+}
+
+/* 故事区域 */
+.story-section {
+    margin-top: 40px;
+    padding-top: 30px;
+    border-top: 2px solid #eee;
+}
+
+/* Tab切换 */
+.tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tab {
+    flex: 1;
+    padding: 12px 20px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: all 0.3s;
+}
+
+.tab:hover {
+    border-color: #333;
+}
+
+.tab.active {
+    background: #222;
+    color: white;
+    border-color: #222;
+}
+
+/* Tab内容 */
+.tab-content {
+    background: #fafafa;
+    border-radius: 8px;
+    padding: 25px;
+    min-height: 200px;
+    border: 1px solid #eee;
+}
+
+.tab-pane {
+    display: none;
+}
+
+.tab-pane.active {
+    display: block;
+}
+
+.story-content {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 1.15rem;
+    line-height: 2;
+    color: #333;
+}
+
+.story-content .highlight {
+    font-weight: bold;
+    color: #333;
+}
+
+.story-content .definition {
+    color: #666;
+    font-size: 0.95rem;
+    font-style: normal;
+}
+
+.chinese-story {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+/* 单词点击效果 */
+.highlight {
+    cursor: pointer;
+    transition: color 0.2s, transform 0.1s;
+}
+
+.highlight:hover {
+    color: #000;
+}
+
+.highlight:active {
+    transform: scale(0.95);
+}
+
+/* 释义缺失提示 */
+.definition-missing {
+    color: #999;
+}
+
+/* 填空题样式 */
+.quiz-input {
+    width: 120px;
+    padding: 5px 10px;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    font-size: 0.95rem;
+    margin: 0 5px;
+    transition: all 0.3s;
+}
+
+.quiz-input:focus {
+    outline: none;
+    border-color: #333;
+}
+
+.quiz-input.correct {
+    border-color: #4CAF50;
+    background: #e8f5e9;
+}
+
+.quiz-input.incorrect {
+    border-color: #f44336;
+    background: #ffebee;
+}
+
+.correct-answer {
+    color: #4CAF50;
+    font-weight: bold;
+    margin-left: 5px;
+}
+
+.quiz-actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+}
+
+.submit-btn, .reset-btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.submit-btn {
+    background: #4CAF50;
+    color: white;
+}
+
+.submit-btn:hover {
+    background: #43A047;
+}
+
+.reset-btn {
+    background: #eee;
+    color: #333;
+}
+
+.reset-btn:hover {
+    background: #ddd;
+}
+
+.quiz-result {
+    margin-top: 20px;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 1.1rem;
+}
+
+.quiz-result.excellent {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.quiz-result.pass {
+    background: #fff3e0;
+    color: #ef6c00;
+}
+
+.quiz-result.fail {
+    background: #ffebee;
+    color: #c62828;
+}
+
+/* 模态框 */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 8px;
+    max-width: 700px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.loading-modal {
+    max-width: 400px;
+    padding: 40px;
+    text-align: center;
+}
+
+.loading-spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid #eee;
+    border-top-color: #333;
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-text {
+    font-size: 1.2rem;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.loading-hint {
+    color: #888;
+    font-size: 0.95rem;
+}
+
+.settings-group {
+    margin-bottom: 20px;
+}
+
+.settings-group label {
+    display: block;
+    color: #333;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.settings-group input,
+.settings-group select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #eee;
+    border-radius: 8px;
+    font-size: 1rem;
+}
+
+.settings-group input:focus,
+.settings-group select:focus {
+    outline: none;
+    border-color: #333;
+}
+
+.settings-hint {
+    color: #888;
+    font-size: 0.9rem;
+    background: #f8f9ff;
+    padding: 12px;
+    border-radius: 8px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.modal-header h3 {
+    color: #333;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #999;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-hint {
+    color: #666;
+    margin-bottom: 15px;
+}
+
+.word-preview {
+    background: #f8f9ff;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    font-family: 'Times New Roman', Times, serif;
+    line-height: 1.8;
+}
+
+.word-preview .word-tag {
+    display: inline-block;
+    background: #222;
+    color: white;
+    padding: 3px 10px;
+    border-radius: 8px;
+    margin: 3px;
+    font-size: 0.9rem;
+}
+
+.story-input-group,
+.definitions-input-group {
+    margin-bottom: 20px;
+}
+
+.story-input-group label,
+.definitions-input-group label {
+    display: block;
+    color: #333;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+#storyInput,
+#definitionsInput {
+    width: 100%;
+    height: 150px;
+    padding: 15px;
+    border: 2px solid #eee;
+    border-radius: 10px;
+    font-size: 1rem;
+    resize: vertical;
+}
+
+#storyInput:focus,
+#definitionsInput:focus {
+    outline: none;
+    border-color: #333;
+}
+
+.modal-footer {
+    display: flex;
+    gap: 10px;
+    padding: 20px;
+    border-top: 1px solid #eee;
+}
+
+.cancel-btn, .confirm-btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.cancel-btn {
+    background: #eee;
+    color: #333;
+}
+
+.confirm-btn {
+    background: #222;
+    color: white;
+}
+
+/* 历史记录侧边栏 */
+.history-sidebar {
+    position: fixed;
+    top: 0;
+    right: -400px;
+    width: 400px;
+    height: 100vh;
+    background: white;
+    box-shadow: -5px 0 30px rgba(0,0,0,0.2);
+    z-index: 1001;
+    transition: right 0.3s;
+    display: flex;
+    flex-direction: column;
+}
+
+.history-sidebar.show {
+    right: 0;
+}
+
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.sidebar-header h3 {
+    color: #333;
+}
+
+.close-sidebar {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #999;
+}
+
+.history-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.history-item {
+    padding: 15px;
+    border: 1px solid #eee;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.history-item:hover {
+    border-color: #333;
+    background: #f8f9ff;
+}
+
+.history-date {
+    font-size: 0.85rem;
+    color: #999;
+    margin-bottom: 8px;
+}
+
+.history-words {
+    font-size: 0.9rem;
+    color: #333;
+    margin-bottom: 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.history-preview {
+    font-size: 0.85rem;
+    color: #666;
+    font-style: italic;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.history-delete {
+    float: right;
+    background: none;
+    border: none;
+    color: #f44336;
+    cursor: pointer;
+    font-size: 1.2rem;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.history-item:hover .history-delete {
+    opacity: 1;
+}
+
+.history-empty {
+    text-align: center;
+    color: #999;
+    padding: 40px;
+}
+
+/* 错词本侧边栏 */
+.wrongwords-sidebar {
+    position: fixed;
+    top: 0;
+    right: -400px;
+    width: 400px;
+    height: 100vh;
+    background: white;
+    box-shadow: -5px 0 30px rgba(0,0,0,0.2);
+    z-index: 1001;
+    transition: right 0.3s;
+    display: flex;
+    flex-direction: column;
+}
+
+.wrongwords-sidebar.show {
+    right: 0;
+}
+
+.wrongwords-actions {
+    display: flex;
+    gap: 8px;
+    padding: 10px 15px;
+    border-bottom: 1px solid #eee;
+    flex-wrap: wrap;
+}
+
+.wrongwords-actions button {
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.wrongwords-actions button:hover {
+    background: #f5f5f5;
+}
+
+.select-all-btn:hover {
+    border-color: #333;
+    color: #333;
+}
+
+.delete-selected-btn {
+    color: #f44336 !important;
+}
+
+.delete-selected-btn:hover {
+    border-color: #f44336 !important;
+    background: #ffebee !important;
+}
+
+.wrongwords-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.wrongword-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.wrongword-item:hover {
+    border-color: #333;
+    background: #f8f9ff;
+}
+
+.wrongword-item.selected {
+    border-color: #333;
+    background: #f0f4ff;
+}
+
+.wrongword-checkbox {
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
+    cursor: pointer;
+    accent-color: #333;
+}
+
+.wrongword-content {
+    flex: 1;
+}
+
+.wrongword-word {
+    font-weight: bold;
+    color: #333;
+    font-size: 1.1rem;
+    margin-bottom: 4px;
+}
+
+.wrongword-definition {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.wrongword-date {
+    font-size: 0.75rem;
+    color: #999;
+    margin-top: 4px;
+}
+
+.wrongwords-footer {
+    padding: 15px;
+    border-top: 1px solid #eee;
+}
+
+.generate-from-wrong-btn {
+    width: 100%;
+    padding: 12px;
+    background: #444;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.generate-from-wrong-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+}
+
+.wrongwords-empty {
+    text-align: center;
+    color: #999;
+    padding: 40px;
+}
+
+/* 遮罩层 */
+.overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.3);
+    z-index: 1000;
+}
+
+.overlay.show {
+    display: block;
+}
+
+/* 响应式设计 - 平板 */
+@media (max-width: 1024px) {
+    .container {
+        padding: 15px;
+    }
+    
+    .main-content {
+        padding: 20px;
+    }
+    
+    .story-content {
+        font-size: 1.05rem;
+        line-height: 1.8;
+    }
+}
+
+/* 响应式设计 - 手机 */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+    
+    .header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .header .subtitle {
+        font-size: 0.9rem;
+    }
+    
+    .header-buttons {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .header-buttons button {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+    }
+    
+    .main-content {
+        padding: 15px;
+    }
+    
+    .tabs {
+        flex-direction: column;
+    }
+    
+    .tab {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .story-content {
+        font-size: 1rem;
+        padding: 15px;
+    }
+    
+    .quiz-input {
+        width: 100px;
+        font-size: 0.85rem;
+        padding: 4px 8px;
+    }
+    
+    .upload-area {
+        padding: 30px 15px;
+    }
+    
+    #wordInput {
+        min-height: 120px;
+    }
+    
+    .history-sidebar,
+    .wrongwords-sidebar {
+        width: 100%;
+        right: -100%;
+    }
+    
+    .modal-content {
+        margin: 10px;
+        padding: 20px;
+    }
+    
+    .definition {
+        display: block;
+        margin-top: 2px;
+        margin-left: 0;
+    }
+    
+    /* 触摸友好的按钮大小 */
+    .generate-btn,
+    .submit-btn,
+    .reset-btn {
+        padding: 14px 24px;
+        font-size: 1rem;
+    }
+}
+
+/* 小屏手机 */
+@media (max-width: 480px) {
+    .header h1 {
+        font-size: 1.3rem;
+    }
+    
+    .story-content .highlight {
+        display: inline;
+    }
+    
+    .story-content .definition {
+        font-size: 0.85rem;
+    }
+}
