@@ -1517,58 +1517,253 @@ function playLookupWord() {
     }
 }
 
+// 内置常用词词典（即时查询）
+const BUILTIN_DICT = {
+    // 常用词汇 - 可以根据需要扩展
+    "the": "定冠词，这，那",
+    "be": "v. 是；存在",
+    "to": "prep. 到；向；给",
+    "of": "prep. 的；属于",
+    "and": "conj. 和；与",
+    "a": "art. 一个",
+    "in": "prep. 在...里面",
+    "that": "pron. 那个；conj. 那",
+    "have": "v. 有；拥有",
+    "i": "pron. 我",
+    "it": "pron. 它",
+    "for": "prep. 为了；因为",
+    "not": "adv. 不；没有",
+    "on": "prep. 在...上面",
+    "with": "prep. 和...一起",
+    "he": "pron. 他",
+    "as": "prep. 作为；像",
+    "you": "pron. 你；你们",
+    "do": "v. 做；执行",
+    "at": "prep. 在",
+    "this": "pron. 这个",
+    "but": "conj. 但是",
+    "his": "pron. 他的",
+    "by": "prep. 通过；被",
+    "from": "prep. 从；来自",
+    "they": "pron. 他们",
+    "we": "pron. 我们",
+    "say": "v. 说",
+    "her": "pron. 她的",
+    "she": "pron. 她",
+    "or": "conj. 或者",
+    "an": "art. 一个",
+    "will": "v. 将要；愿意",
+    "my": "pron. 我的",
+    "one": "num. 一；pron. 一个人",
+    "all": "adj. 所有的",
+    "would": "v. 将会；愿意",
+    "there": "adv. 那里",
+    "their": "pron. 他们的",
+    "what": "pron. 什么",
+    "so": "adv. 如此；所以",
+    "up": "adv. 向上",
+    "out": "adv. 出去",
+    "if": "conj. 如果",
+    "about": "prep. 关于",
+    "who": "pron. 谁",
+    "get": "v. 得到；变得",
+    "which": "pron. 哪个",
+    "go": "v. 去；走",
+    "me": "pron. 我(宾格)",
+    "when": "adv. 什么时候",
+    "make": "v. 制作；使得",
+    "can": "v. 能够",
+    "like": "v. 喜欢；prep. 像",
+    "time": "n. 时间",
+    "no": "adv. 不；没有",
+    "just": "adv. 仅仅；刚刚",
+    "him": "pron. 他(宾格)",
+    "know": "v. 知道",
+    "take": "v. 拿；带",
+    "people": "n. 人们",
+    "into": "prep. 进入",
+    "year": "n. 年",
+    "your": "pron. 你的",
+    "good": "adj. 好的",
+    "some": "adj. 一些",
+    "could": "v. 能够(过去式)",
+    "them": "pron. 他们(宾格)",
+    "see": "v. 看见",
+    "other": "adj. 其他的",
+    "than": "conj. 比",
+    "then": "adv. 然后",
+    "now": "adv. 现在",
+    "look": "v. 看",
+    "only": "adv. 仅仅",
+    "come": "v. 来",
+    "its": "pron. 它的",
+    "over": "prep. 在...上方",
+    "think": "v. 想；认为",
+    "also": "adv. 也",
+    "back": "adv. 回；n. 背部",
+    "after": "prep. 在...之后",
+    "use": "v. 使用",
+    "two": "num. 二",
+    "how": "adv. 怎样",
+    "our": "pron. 我们的",
+    "work": "v. 工作；n. 工作",
+    "first": "adj. 第一的",
+    "well": "adv. 好；int. 嗯",
+    "way": "n. 方式；路",
+    "even": "adv. 甚至",
+    "new": "adj. 新的",
+    "want": "v. 想要",
+    "because": "conj. 因为",
+    "any": "adj. 任何的",
+    "these": "pron. 这些",
+    "give": "v. 给",
+    "day": "n. 天；日",
+    "most": "adj. 最多的",
+    "us": "pron. 我们(宾格)",
+    "environment": "n. 环境",
+    "climate": "n. 气候",
+    "change": "n./v. 变化；改变",
+    "global": "adj. 全球的",
+    "sustainable": "adj. 可持续的",
+    "development": "n. 发展",
+    "research": "n./v. 研究",
+    "technology": "n. 技术",
+    "education": "n. 教育",
+    "society": "n. 社会",
+    "economic": "adj. 经济的",
+    "political": "adj. 政治的",
+    "cultural": "adj. 文化的",
+    "significant": "adj. 重要的；显著的",
+    "evidence": "n. 证据",
+    "analysis": "n. 分析",
+    "theory": "n. 理论",
+    "approach": "n./v. 方法；接近",
+    "process": "n. 过程；v. 处理",
+    "system": "n. 系统",
+    "however": "adv. 然而",
+    "therefore": "adv. 因此",
+    "although": "conj. 虽然",
+    "whether": "conj. 是否",
+    "provide": "v. 提供",
+    "require": "v. 需要；要求",
+    "include": "v. 包括",
+    "consider": "v. 考虑",
+    "suggest": "v. 建议；暗示",
+    "indicate": "v. 表明；指示",
+    "achieve": "v. 实现；达到",
+    "affect": "v. 影响",
+    "effect": "n. 效果；影响",
+    "impact": "n./v. 影响；冲击",
+    "increase": "v./n. 增加",
+    "decrease": "v./n. 减少",
+    "improve": "v. 提高；改善",
+    "reduce": "v. 减少",
+    "maintain": "v. 维持；保持",
+    "determine": "v. 决定；确定",
+    "establish": "v. 建立",
+    "individual": "n. 个人；adj. 个人的",
+    "community": "n. 社区；共同体",
+    "government": "n. 政府",
+    "international": "adj. 国际的",
+    "national": "adj. 国家的",
+    "local": "adj. 当地的",
+    "specific": "adj. 具体的；特定的",
+    "particular": "adj. 特别的；特定的",
+    "general": "adj. 一般的；总的",
+    "common": "adj. 共同的；普通的",
+    "similar": "adj. 相似的",
+    "different": "adj. 不同的",
+    "important": "adj. 重要的",
+    "necessary": "adj. 必要的",
+    "possible": "adj. 可能的",
+    "available": "adj. 可用的",
+    "likely": "adj. 可能的",
+    "potential": "adj. 潜在的；n. 潜力"
+};
+
 async function fetchWordDefinition(word) {
     const lowerWord = word.toLowerCase();
     
-    // 首先尝试有道翻译API（快速）
+    // 1. 首先检查内置词典（即时）
+    if (BUILTIN_DICT[lowerWord]) {
+        const result = {
+            word: word,
+            phonetic: '',
+            definitions: [{ pos: '', meaning: BUILTIN_DICT[lowerWord] }]
+        };
+        lookupCache[lowerWord] = result;
+        saveLookupCache();
+        updateLookupDisplay(lowerWord, result);
+        return;
+    }
+    
+    // 2. 尝试 Free Dictionary API（快速、无跨域）
     try {
-        const result = await fetchYoudaoDefinition(word);
+        const result = await fetchFreeDictionaryAPI(word);
         if (result) {
             lookupCache[lowerWord] = result;
             saveLookupCache();
-            
-            const contentEl = document.getElementById('lookupContent');
-            const currentWord = document.getElementById('lookupWord').textContent.toLowerCase();
-            if (currentWord === lowerWord) {
-                contentEl.innerHTML = formatLookupResult(result);
-            }
+            updateLookupDisplay(lowerWord, result);
             return;
         }
     } catch (err) {
-        console.log('有道API失败，尝试备用方案:', err.message);
+        console.log('Free Dictionary API失败:', err.message);
     }
     
-    // 备用方案：使用AI API
+    // 3. 备用方案：使用AI API
     await fetchWordDefinitionAI(word);
 }
 
-// 有道翻译API（免费、快速）
-async function fetchYoudaoDefinition(word) {
+function updateLookupDisplay(lowerWord, result) {
+    const contentEl = document.getElementById('lookupContent');
+    const currentWord = document.getElementById('lookupWord').textContent.toLowerCase();
+    if (currentWord === lowerWord) {
+        contentEl.innerHTML = formatLookupResult(result);
+    }
+}
+
+// Free Dictionary API（免费、快速、支持跨域）
+async function fetchFreeDictionaryAPI(word) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3秒超时
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
     
     try {
-        // 使用有道翻译接口
-        const response = await fetch(`https://fanyi.youdao.com/translate?&doctype=json&type=EN2ZH_CN&i=${encodeURIComponent(word)}`, {
+        const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`, {
             signal: controller.signal
         });
         
         clearTimeout(timeoutId);
         
-        if (!response.ok) throw new Error('请求失败');
+        if (!response.ok) {
+            if (response.status === 404) {
+                return null; // 单词不存在
+            }
+            throw new Error('请求失败');
+        }
         
         const data = await response.json();
         
-        if (data.translateResult && data.translateResult[0] && data.translateResult[0][0]) {
-            const translation = data.translateResult[0][0].tgt;
+        if (data && data[0]) {
+            const entry = data[0];
+            const phonetic = entry.phonetic || (entry.phonetics && entry.phonetics[0] && entry.phonetics[0].text) || '';
             
-            // 构造标准格式的结果
+            const definitions = [];
+            if (entry.meanings) {
+                entry.meanings.forEach(meaning => {
+                    const pos = meaning.partOfSpeech || '';
+                    if (meaning.definitions && meaning.definitions[0]) {
+                        definitions.push({
+                            pos: pos,
+                            meaning: meaning.definitions[0].definition // 英文释义
+                        });
+                    }
+                });
+            }
+            
             return {
                 word: word,
-                phonetic: '', // 有道翻译API不返回音标
-                definitions: [
-                    { pos: '', meaning: translation }
-                ]
+                phonetic: phonetic,
+                definitions: definitions.length > 0 ? definitions : [{ pos: '', meaning: 'No definition found' }]
             };
         }
         
@@ -1585,7 +1780,7 @@ async function fetchWordDefinitionAI(word) {
     
     if (!settings.apiKey) {
         const contentEl = document.getElementById('lookupContent');
-        contentEl.innerHTML = '<div class="lookup-definition">请先在设置中配置API</div>';
+        contentEl.innerHTML = '<div class="lookup-definition">未找到释义</div>';
         return;
     }
     
@@ -1602,11 +1797,11 @@ async function fetchWordDefinitionAI(word) {
     
     const prompt = `翻译英文单词"${word}"，返回JSON（无代码块）：
 {"word":"${word}","phonetic":"音标","definitions":[{"pos":"词性","meaning":"中文释义"}]}
-要求：definitions包含主要词性和释义，简洁准确。`;
+要求简洁。`;
 
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
         
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -1646,20 +1841,14 @@ async function fetchWordDefinitionAI(word) {
         // 缓存结果
         lookupCache[currentLookupWord] = result;
         saveLookupCache();
-        
-        // 更新显示
-        const contentEl = document.getElementById('lookupContent');
-        const currentWord = document.getElementById('lookupWord').textContent.toLowerCase();
-        if (currentWord === currentLookupWord) {
-            contentEl.innerHTML = formatLookupResult(result);
-        }
+        updateLookupDisplay(currentLookupWord, result);
     } catch (err) {
         console.error('查询单词失败:', err);
         const contentEl = document.getElementById('lookupContent');
         if (err.name === 'AbortError') {
             contentEl.innerHTML = '<div class="lookup-definition">查询超时</div>';
         } else {
-            contentEl.innerHTML = '<div class="lookup-definition">查询失败</div>';
+            contentEl.innerHTML = '<div class="lookup-definition">未找到释义</div>';
         }
     }
 }
