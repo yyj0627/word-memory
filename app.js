@@ -3,9 +3,11 @@ let currentWords = [];
 let currentStory = '';
 let currentChineseStory = '';
 let currentDefinitions = {};
+let etymologyCache = {}; // 词根词缀缓存
 const HISTORY_KEY = 'wordMemoryHistory';
 const SETTINGS_KEY = 'wordMemorySettings';
 const WRONG_WORDS_KEY = 'wordMemoryWrongWords';
+const ETYMOLOGY_KEY = 'wordMemoryEtymology'; // 词根词缀持久化存储
 const MAX_HISTORY = 50;
 
 // API配置
@@ -64,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initWordInput();
     initSettings();
     loadHistory();
+    loadEtymologyCache();
 });
 
 // ==================== 图片上传与OCR ====================
@@ -586,7 +589,7 @@ function createWordWithTooltip(word, showDefinitionInline = false) {
     const lowerWord = word.toLowerCase();
     const definition = currentDefinitions[lowerWord] || '暂无释义';
     
-    let html = `<span class="highlight" data-word="${lowerWord}" onclick="speakWord('${word}')">`;
+    let html = `<span class="highlight" data-word="${lowerWord}" onclick="speakWord('${word}', event)">`;
     html += word;
     html += `</span>`;
     
@@ -600,7 +603,7 @@ function createWordWithTooltip(word, showDefinitionInline = false) {
 }
 
 // 语音播放功能（点击触发）- 使用有道词典真人发音
-function speakWord(word) {
+function speakWord(word, event) {
     // 使用有道词典的真人发音（美式）
     const audioUrl = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&type=2`;
     
@@ -624,6 +627,222 @@ function speakWord(word) {
             window.speechSynthesis.speak(utterance);
         }
     });
+    
+    // 显示词根词缀弹出标签
+    showEtymologyPopup(word, event);
+}
+
+// ==================== 词根词缀功能 ====================
+function loadEtymologyCache() {
+    const stored = localStorage.getItem(ETYMOLOGY_KEY);
+    if (stored) {
+        try {
+            etymologyCache = JSON.parse(stored);
+        } catch (e) {
+            etymologyCache = {};
+        }
+    }
+}
+
+function saveEtymologyCache() {
+    localStorage.setItem(ETYMOLOGY_KEY, JSON.stringify(etymologyCache));
+}
+
+function showEtymologyPopup(word, event) {
+    const popup = document.getElementById('etymologyPopup');
+    const wordEl = document.getElementById('etymologyWord');
+    const contentEl = document.getElementById('etymologyContent');
+    
+    wordEl.textContent = word;
+    
+    // 获取点击位置
+    let x, y;
+    if (event) {
+        x = event.clientX || event.pageX;
+        y = event.clientY || event.pageY;
+    } else {
+        x = window.innerWidth / 2;
+        y = window.innerHeight / 2;
+    }
+    
+    // 检查缓存
+    const lowerWord = word.toLowerCase();
+    if (etymologyCache[lowerWord]) {
+        contentEl.innerHTML = formatEtymology(etymologyCache[lowerWord]);
+    } else {
+        contentEl.innerHTML = '<div class="etymology-loading">分析词根词缀中...</div>';
+        fetchEtymology(word);
+    }
+    
+    // 显示弹出框
+    popup.classList.add('show');
+    
+    // 计算位置，确保不超出屏幕
+    const popupRect = popup.getBoundingClientRect();
+    const padding = 10;
+    
+    // 优先显示在点击位置右下方
+    let left = x + 10;
+    let top = y + 10;
+    
+    // 如果超出右边界，显示在左边
+    if (left + popupRect.width > window.innerWidth - padding) {
+        left = x - popupRect.width - 10;
+    }
+    
+    // 如果超出下边界，显示在上方
+    if (top + popupRect.height > window.innerHeight - padding) {
+        top = y - popupRect.height - 10;
+    }
+    
+    // 确保不超出左边界和上边界
+    left = Math.max(padding, left);
+    top = Math.max(padding, top);
+    
+    popup.style.left = left + 'px';
+    popup.style.top = top + 'px';
+}
+
+function hideEtymologyPopup() {
+    const popup = document.getElementById('etymologyPopup');
+    popup.classList.remove('show');
+}
+
+// 点击其他地方关闭弹出框
+document.addEventListener('click', (e) => {
+    const popup = document.getElementById('etymologyPopup');
+    if (popup && !popup.contains(e.target) && !e.target.classList.contains('highlight')) {
+        hideEtymologyPopup();
+    }
+});
+
+async function fetchEtymology(word) {
+    const settings = loadSettings();
+    
+    if (!settings.apiKey) {
+        const contentEl = document.getElementById('etymologyContent');
+        contentEl.innerHTML = '<div class="etymology-section"><span class="etymology-meaning">请先在设置中配置API</span></div>';
+        return;
+    }
+    
+    const provider = settings.provider || 'openai';
+    let apiUrl, model;
+    
+    if (provider === 'custom') {
+        apiUrl = settings.customUrl;
+        model = settings.model || 'gpt-3.5-turbo';
+    } else {
+        apiUrl = API_CONFIGS[provider].url;
+        model = settings.model || API_CONFIGS[provider].defaultModel;
+    }
+    
+    const prompt = `分析英文单词 "${word}" 的词根词缀构成。
+
+请用以下JSON格式返回（不要包含markdown代码块标记）：
+{
+  "word": "${word}",
+  "parts": [
+    {"part": "词根或词缀", "meaning": "含义", "type": "root/prefix/suffix"}
+  ],
+  "origin": "词源语言（如拉丁语、希腊语等）",
+  "analysis": "简短的构词分析说明"
+}
+
+注意：
+- parts数组包含该单词的所有词根、前缀、后缀
+- 如果是简单词没有词根词缀，parts可以只包含词根本身
+- analysis要简洁，一两句话即可`;
+
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${settings.apiKey}`
+            },
+            body: JSON.stringify({
+                model: model,
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.3
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        const content = data.choices[0].message.content;
+        
+        // 解析JSON
+        let etymology;
+        try {
+            // 尝试直接解析
+            etymology = JSON.parse(content);
+        } catch (e) {
+            // 尝试从文本中提取JSON
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                etymology = JSON.parse(jsonMatch[0]);
+            } else {
+                throw new Error('无法解析返回内容');
+            }
+        }
+        
+        // 缓存结果
+        const lowerWord = word.toLowerCase();
+        etymologyCache[lowerWord] = etymology;
+        saveEtymologyCache();
+        
+        // 更新显示
+        const contentEl = document.getElementById('etymologyContent');
+        const currentWord = document.getElementById('etymologyWord').textContent;
+        if (currentWord.toLowerCase() === lowerWord) {
+            contentEl.innerHTML = formatEtymology(etymology);
+        }
+    } catch (err) {
+        console.error('获取词根词缀失败:', err);
+        const contentEl = document.getElementById('etymologyContent');
+        contentEl.innerHTML = '<div class="etymology-section"><span class="etymology-meaning">获取词根词缀信息失败</span></div>';
+    }
+}
+
+function formatEtymology(etymology) {
+    let html = '';
+    
+    // 词源
+    if (etymology.origin) {
+        html += `<div class="etymology-section">
+            <div class="etymology-label">词源</div>
+            <div class="etymology-value">${etymology.origin}</div>
+        </div>`;
+    }
+    
+    // 词根词缀拆解
+    if (etymology.parts && etymology.parts.length > 0) {
+        html += `<div class="etymology-section">
+            <div class="etymology-label">构词分析</div>
+            <div class="etymology-value">`;
+        
+        etymology.parts.forEach(part => {
+            const typeLabel = part.type === 'prefix' ? '前缀' : 
+                             part.type === 'suffix' ? '后缀' : '词根';
+            html += `<span class="etymology-root">${part.part}</span>
+                     <span class="etymology-meaning">(${typeLabel}: ${part.meaning})</span><br>`;
+        });
+        
+        html += `</div></div>`;
+    }
+    
+    // 分析说明
+    if (etymology.analysis) {
+        html += `<div class="etymology-section">
+            <div class="etymology-label">说明</div>
+            <div class="etymology-value">${etymology.analysis}</div>
+        </div>`;
+    }
+    
+    return html || '<div class="etymology-section"><span class="etymology-meaning">暂无词根词缀信息</span></div>';
 }
 
 function renderAnnotatedStory() {
@@ -683,7 +902,7 @@ function renderQuizStory() {
     html = html.replace(/\*\*([a-zA-Z]+)\*\*/g, (match, word) => {
         const lowerWord = word.toLowerCase();
         inputIndex++;
-        let result = `<span class="highlight" data-word="${lowerWord}" onclick="speakWord('${word}')">`;
+        let result = `<span class="highlight" data-word="${lowerWord}" onclick="speakWord('${word}', event)">`;
         result += word;
         result += `</span>`;
         result += ` <input type="text" class="quiz-input" data-word="${lowerWord}" data-index="${inputIndex}" placeholder="中文释义">`;
