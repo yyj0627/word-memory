@@ -1518,6 +1518,69 @@ function playLookupWord() {
 }
 
 async function fetchWordDefinition(word) {
+    const lowerWord = word.toLowerCase();
+    
+    // 首先尝试有道翻译API（快速）
+    try {
+        const result = await fetchYoudaoDefinition(word);
+        if (result) {
+            lookupCache[lowerWord] = result;
+            saveLookupCache();
+            
+            const contentEl = document.getElementById('lookupContent');
+            const currentWord = document.getElementById('lookupWord').textContent.toLowerCase();
+            if (currentWord === lowerWord) {
+                contentEl.innerHTML = formatLookupResult(result);
+            }
+            return;
+        }
+    } catch (err) {
+        console.log('有道API失败，尝试备用方案:', err.message);
+    }
+    
+    // 备用方案：使用AI API
+    await fetchWordDefinitionAI(word);
+}
+
+// 有道翻译API（免费、快速）
+async function fetchYoudaoDefinition(word) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3秒超时
+    
+    try {
+        // 使用有道翻译接口
+        const response = await fetch(`https://fanyi.youdao.com/translate?&doctype=json&type=EN2ZH_CN&i=${encodeURIComponent(word)}`, {
+            signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) throw new Error('请求失败');
+        
+        const data = await response.json();
+        
+        if (data.translateResult && data.translateResult[0] && data.translateResult[0][0]) {
+            const translation = data.translateResult[0][0].tgt;
+            
+            // 构造标准格式的结果
+            return {
+                word: word,
+                phonetic: '', // 有道翻译API不返回音标
+                definitions: [
+                    { pos: '', meaning: translation }
+                ]
+            };
+        }
+        
+        return null;
+    } catch (err) {
+        clearTimeout(timeoutId);
+        throw err;
+    }
+}
+
+// AI API备用方案
+async function fetchWordDefinitionAI(word) {
     const settings = loadSettings();
     
     if (!settings.apiKey) {
