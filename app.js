@@ -628,7 +628,6 @@ function speakWord(word) {
         }
     });
 }
-}
 
 function renderAnnotatedStory() {
     const container = document.getElementById('annotatedStory');
