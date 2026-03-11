@@ -3,15 +3,404 @@ let currentWords = [];
 let currentStory = '';
 let currentChineseStory = '';
 let currentDefinitions = {};
-let etymologyCache = {}; // 词根词缀缓存
-let lookupCache = {}; // 划词翻译缓存
-let currentLookupWord = ''; // 当前查询的单词
+let lookupCache = {};
+let currentLookupWord = '';
 const HISTORY_KEY = 'wordMemoryHistory';
 const SETTINGS_KEY = 'wordMemorySettings';
 const WRONG_WORDS_KEY = 'wordMemoryWrongWords';
-const ETYMOLOGY_KEY = 'wordMemoryEtymology'; // 词根词缀持久化存储
-const LOOKUP_KEY = 'wordMemoryLookup'; // 划词翻译持久化存储
+const LOOKUP_KEY = 'wordMemoryLookup';
 const MAX_HISTORY = 50;
+
+// 内置常用词典（静态数据，秒级响应）
+const BUILTIN_DICT = {
+    // 常用动词
+    "achieve": "v. 实现，达到",
+    "analyze": "v. 分析",
+    "apply": "v. 应用，申请",
+    "approach": "v./n. 接近，方法",
+    "assess": "v. 评估",
+    "assume": "v. 假设，承担",
+    "benefit": "v./n. 受益，好处",
+    "challenge": "n./v. 挑战",
+    "compare": "v. 比较",
+    "conclude": "v. 得出结论",
+    "conduct": "v. 进行，引导",
+    "consider": "v. 考虑",
+    "contribute": "v. 贡献，促成",
+    "create": "v. 创造",
+    "define": "v. 定义",
+    "demonstrate": "v. 证明，展示",
+    "describe": "v. 描述",
+    "determine": "v. 决定，确定",
+    "develop": "v. 发展，开发",
+    "discuss": "v. 讨论",
+    "emphasize": "v. 强调",
+    "ensure": "v. 确保",
+    "establish": "v. 建立",
+    "evaluate": "v. 评价",
+    "examine": "v. 检查，审查",
+    "explain": "v. 解释",
+    "explore": "v. 探索",
+    "express": "v. 表达",
+    "focus": "v./n. 专注，焦点",
+    "identify": "v. 识别，确定",
+    "illustrate": "v. 说明，阐述",
+    "impact": "n./v. 影响，冲击",
+    "implement": "v. 实施",
+    "imply": "v. 暗示",
+    "improve": "v. 改善",
+    "include": "v. 包含",
+    "increase": "v./n. 增加",
+    "indicate": "v. 表明，指出",
+    "influence": "n./v. 影响",
+    "interpret": "v. 解释，口译",
+    "introduce": "v. 介绍，引入",
+    "investigate": "v. 调查",
+    "involve": "v. 包含，涉及",
+    "maintain": "v. 维持，保持",
+    "measure": "v./n. 测量，措施",
+    "observe": "v. 观察",
+    "obtain": "v. 获得",
+    "occur": "v. 发生",
+    "participate": "v. 参与",
+    "perform": "v. 执行，表演",
+    "predict": "v. 预测",
+    "present": "v./adj. 呈现，当前的",
+    "prevent": "v. 防止",
+    "produce": "v. 生产，产生",
+    "promote": "v. 促进，推广",
+    "propose": "v. 提议",
+    "protect": "v. 保护",
+    "provide": "v. 提供",
+    "publish": "v. 出版，发布",
+    "reach": "v. 达到",
+    "recognize": "v. 识别，承认",
+    "recommend": "v. 推荐",
+    "reduce": "v. 减少",
+    "reflect": "v. 反映，反思",
+    "regard": "v. 认为，看待",
+    "relate": "v. 关联，叙述",
+    "rely": "v. 依赖",
+    "remain": "v. 保持，留下",
+    "replace": "v. 替代",
+    "report": "v./n. 报告",
+    "represent": "v. 代表",
+    "require": "v. 需要，要求",
+    "research": "n./v. 研究",
+    "respond": "v. 回应",
+    "result": "n./v. 结果，导致",
+    "reveal": "v. 揭示",
+    "review": "v./n. 回顾，评论",
+    "solve": "v. 解决",
+    "suggest": "v. 建议，暗示",
+    "support": "v./n. 支持",
+    "survey": "n./v. 调查",
+    "tend": "v. 倾向",
+    "transform": "v. 转变",
+    // 常用名词
+    "analysis": "n. 分析",
+    "approach": "n./v. 方法，接近",
+    "area": "n. 领域，地区",
+    "aspect": "n. 方面",
+    "behavior": "n. 行为",
+    "concept": "n. 概念",
+    "consequence": "n. 结果，后果",
+    "context": "n. 语境，背景",
+    "culture": "n. 文化",
+    "data": "n. 数据",
+    "development": "n. 发展",
+    "economy": "n. 经济",
+    "education": "n. 教育",
+    "effect": "n. 效果，影响",
+    "environment": "n. 环境",
+    "evidence": "n. 证据",
+    "example": "n. 例子",
+    "experience": "n./v. 经验，经历",
+    "factor": "n. 因素",
+    "feature": "n. 特征",
+    "function": "n./v. 功能，运作",
+    "growth": "n. 增长",
+    "health": "n. 健康",
+    "individual": "n./adj. 个人，个体的",
+    "industry": "n. 工业，行业",
+    "information": "n. 信息",
+    "issue": "n. 问题，议题",
+    "knowledge": "n. 知识",
+    "level": "n. 水平，层次",
+    "method": "n. 方法",
+    "nature": "n. 自然，本质",
+    "opportunity": "n. 机会",
+    "period": "n. 时期",
+    "perspective": "n. 视角，观点",
+    "policy": "n. 政策",
+    "population": "n. 人口",
+    "potential": "n./adj. 潜力，潜在的",
+    "practice": "n./v. 实践，练习",
+    "principle": "n. 原则",
+    "problem": "n. 问题",
+    "process": "n./v. 过程，处理",
+    "progress": "n./v. 进展",
+    "project": "n./v. 项目，设计",
+    "quality": "n. 质量",
+    "range": "n./v. 范围",
+    "rate": "n. 率，速度",
+    "region": "n. 地区",
+    "relationship": "n. 关系",
+    "resource": "n. 资源",
+    "response": "n. 回应",
+    "role": "n. 角色，作用",
+    "section": "n. 部分",
+    "situation": "n. 情况",
+    "society": "n. 社会",
+    "solution": "n. 解决方案",
+    "source": "n. 来源",
+    "strategy": "n. 策略",
+    "structure": "n./v. 结构",
+    "study": "n./v. 研究，学习",
+    "system": "n. 系统",
+    "technology": "n. 技术",
+    "theory": "n. 理论",
+    "trend": "n. 趋势",
+    "value": "n./v. 价值，重视",
+    "view": "n./v. 观点，观看",
+    // 常用形容词
+    "available": "adj. 可用的",
+    "complex": "adj. 复杂的",
+    "critical": "adj. 关键的，批判的",
+    "current": "adj. 当前的",
+    "effective": "adj. 有效的",
+    "essential": "adj. 必要的，本质的",
+    "global": "adj. 全球的",
+    "major": "adj. 主要的",
+    "necessary": "adj. 必要的",
+    "negative": "adj. 消极的，否定的",
+    "positive": "adj. 积极的，肯定的",
+    "primary": "adj. 主要的，初级的",
+    "significant": "adj. 重要的，显著的",
+    "similar": "adj. 相似的",
+    "social": "adj. 社会的",
+    "specific": "adj. 具体的，特定的",
+    "traditional": "adj. 传统的",
+    "various": "adj. 各种的",
+    // 常用副词
+    "actually": "adv. 实际上",
+    "especially": "adv. 尤其",
+    "eventually": "adv. 最终",
+    "frequently": "adv. 频繁地",
+    "generally": "adv. 一般地",
+    "however": "adv. 然而",
+    "increasingly": "adv. 越来越",
+    "moreover": "adv. 此外",
+    "particularly": "adv. 特别地",
+    "previously": "adv. 之前",
+    "significantly": "adv. 显著地",
+    "therefore": "adv. 因此",
+    // 雅思高频词汇
+    "abundant": "adj. 丰富的",
+    "accelerate": "v. 加速",
+    "accommodate": "v. 容纳，适应",
+    "accumulate": "v. 积累",
+    "accurate": "adj. 准确的",
+    "acknowledge": "v. 承认",
+    "acquire": "v. 获得",
+    "adapt": "v. 适应",
+    "adequate": "adj. 足够的",
+    "advocate": "v./n. 提倡，支持者",
+    "affect": "v. 影响",
+    "allocate": "v. 分配",
+    "alternative": "n./adj. 替代方案，可替代的",
+    "ambiguous": "adj. 模糊的",
+    "anticipate": "v. 预期",
+    "apparent": "adj. 明显的",
+    "appreciate": "v. 欣赏，感激",
+    "appropriate": "adj. 适当的",
+    "approximate": "adj./v. 大约的，接近",
+    "attribute": "v./n. 归因于，属性",
+    "capable": "adj. 有能力的",
+    "clarify": "v. 阐明",
+    "collaborate": "v. 合作",
+    "compensate": "v. 补偿",
+    "comprehensive": "adj. 全面的",
+    "concentrate": "v. 专注",
+    "confirm": "v. 确认",
+    "considerable": "adj. 相当大的",
+    "consistent": "adj. 一致的",
+    "constitute": "v. 构成",
+    "constraint": "n. 限制",
+    "consume": "v. 消费，消耗",
+    "contemporary": "adj. 当代的",
+    "contradict": "v. 矛盾",
+    "controversy": "n. 争议",
+    "convenient": "adj. 方便的",
+    "conventional": "adj. 传统的，常规的",
+    "convince": "v. 说服",
+    "correspond": "v. 符合，通信",
+    "crucial": "adj. 至关重要的",
+    "decline": "v./n. 下降，拒绝",
+    "dedicate": "v. 致力于",
+    "deficit": "n. 赤字，缺乏",
+    "derive": "v. 获得，源于",
+    "despite": "prep. 尽管",
+    "detect": "v. 检测",
+    "devote": "v. 致力于",
+    "diminish": "v. 减少",
+    "distinct": "adj. 明显的，不同的",
+    "distribute": "v. 分配，分布",
+    "diverse": "adj. 多样的",
+    "domestic": "adj. 国内的，家庭的",
+    "dominant": "adj. 占主导地位的",
+    "dramatic": "adj. 引人注目的，剧烈的",
+    "efficient": "adj. 有效率的",
+    "eliminate": "v. 消除",
+    "emerge": "v. 出现",
+    "emit": "v. 排放，发射",
+    "enable": "v. 使能够",
+    "encounter": "v./n. 遇到",
+    "enhance": "v. 增强",
+    "enormous": "adj. 巨大的",
+    "exceed": "v. 超过",
+    "exclude": "v. 排除",
+    "exhibit": "v./n. 展示，展览",
+    "expand": "v. 扩展",
+    "exploit": "v. 利用，剥削",
+    "expose": "v. 暴露，接触",
+    "extend": "v. 延伸，扩展",
+    "external": "adj. 外部的",
+    "facilitate": "v. 促进",
+    "flexible": "adj. 灵活的",
+    "fluctuate": "v. 波动",
+    "fundamental": "adj. 基本的",
+    "generate": "v. 产生",
+    "hence": "adv. 因此",
+    "hypothesis": "n. 假设",
+    "ignore": "v. 忽视",
+    "illustrate": "v. 说明",
+    "immigrate": "v. 移民",
+    "impose": "v. 强加，征税",
+    "incredible": "adj. 难以置信的",
+    "inevitable": "adj. 不可避免的",
+    "inherit": "v. 继承",
+    "initial": "adj. 最初的",
+    "innovate": "v. 创新",
+    "insight": "n. 洞察力",
+    "instance": "n. 例子",
+    "integrate": "v. 整合",
+    "intense": "adj. 强烈的",
+    "interact": "v. 互动",
+    "internal": "adj. 内部的",
+    "intervene": "v. 干预",
+    "isolate": "v. 隔离",
+    "justify": "v. 证明正当",
+    "launch": "v./n. 发起，发射",
+    "layer": "n. 层",
+    "legal": "adj. 法律的",
+    "likewise": "adv. 同样地",
+    "locate": "v. 位于，确定位置",
+    "logic": "n. 逻辑",
+    "mature": "adj./v. 成熟的",
+    "mechanism": "n. 机制",
+    "modify": "v. 修改",
+    "monitor": "v./n. 监控",
+    "neglect": "v. 忽视",
+    "nevertheless": "adv. 然而",
+    "notion": "n. 概念",
+    "obvious": "adj. 明显的",
+    "occupy": "v. 占据",
+    "oppose": "v. 反对",
+    "option": "n. 选择",
+    "outcome": "n. 结果",
+    "overall": "adj./adv. 总体的",
+    "overcome": "v. 克服",
+    "overlook": "v. 忽视",
+    "parallel": "adj./n. 平行的",
+    "perceive": "v. 感知",
+    "permanent": "adj. 永久的",
+    "persist": "v. 坚持",
+    "phenomenon": "n. 现象",
+    "pioneer": "n./v. 先驱",
+    "possess": "v. 拥有",
+    "precise": "adj. 精确的",
+    "preserve": "v. 保存，保护",
+    "priority": "n. 优先权",
+    "proceed": "v. 继续进行",
+    "profound": "adj. 深刻的",
+    "prohibit": "v. 禁止",
+    "prominent": "adj. 突出的，著名的",
+    "prospect": "n. 前景",
+    "pursue": "v. 追求",
+    "radical": "adj. 激进的，根本的",
+    "random": "adj. 随机的",
+    "rational": "adj. 理性的",
+    "recover": "v. 恢复",
+    "refine": "v. 精炼，改进",
+    "regulate": "v. 调节，管理",
+    "reinforce": "v. 加强",
+    "reject": "v. 拒绝",
+    "relevant": "adj. 相关的",
+    "reliable": "adj. 可靠的",
+    "reluctant": "adj. 不情愿的",
+    "remarkable": "adj. 显著的",
+    "restrict": "v. 限制",
+    "retain": "v. 保留",
+    "reverse": "v./adj. 逆转",
+    "revise": "v. 修订",
+    "revolution": "n. 革命",
+    "rigid": "adj. 严格的，僵硬的",
+    "scheme": "n./v. 计划，方案",
+    "scope": "n. 范围",
+    "secure": "adj./v. 安全的，获得",
+    "seek": "v. 寻求",
+    "shift": "v./n. 转移，转变",
+    "shrink": "v. 缩小",
+    "simulate": "v. 模拟",
+    "simultaneously": "adv. 同时地",
+    "sole": "adj. 唯一的",
+    "sophisticated": "adj. 复杂的，精密的",
+    "stable": "adj. 稳定的",
+    "status": "n. 地位，状态",
+    "stimulate": "v. 刺激",
+    "straightforward": "adj. 简单的，直接的",
+    "subordinate": "adj./n. 次要的，下属",
+    "subsequent": "adj. 随后的",
+    "substantial": "adj. 大量的，实质的",
+    "substitute": "n./v. 替代品，替代",
+    "sufficient": "adj. 足够的",
+    "supplement": "n./v. 补充",
+    "sustain": "v. 维持",
+    "symbol": "n. 象征",
+    "target": "n./v. 目标",
+    "technique": "n. 技术",
+    "temporary": "adj. 临时的",
+    "terminate": "v. 终止",
+    "theme": "n. 主题",
+    "threat": "n. 威胁",
+    "trace": "v./n. 追溯，痕迹",
+    "transfer": "v./n. 转移",
+    "transmit": "v. 传输",
+    "transparent": "adj. 透明的",
+    "trigger": "v./n. 触发",
+    "ultimate": "adj. 最终的",
+    "undergo": "v. 经历",
+    "underlie": "v. 构成基础",
+    "undertake": "v. 承担",
+    "uniform": "adj./n. 统一的，制服",
+    "unique": "adj. 独特的",
+    "utilize": "v. 利用",
+    "valid": "adj. 有效的",
+    "vary": "v. 变化",
+    "venture": "n./v. 冒险",
+    "via": "prep. 通过",
+    "violate": "v. 违反",
+    "virtual": "adj. 实际上的，虚拟的",
+    "visible": "adj. 可见的",
+    "vital": "adj. 至关重要的",
+    "voluntary": "adj. 自愿的",
+    "welfare": "n. 福利",
+    "whereas": "conj. 然而，鉴于",
+    "widespread": "adj. 广泛的",
+    "withdraw": "v. 撤回，取款",
+    "yield": "v./n. 产生，产量"
+};
 
 // API配置
 const API_CONFIGS = {
@@ -69,7 +458,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initWordInput();
     initSettings();
     loadHistory();
-    loadEtymologyCache();
     loadLookupCache();
     initLookupFeature();
 });
@@ -409,30 +797,33 @@ async function callAI(words, settings) {
         model = settings.model || API_CONFIGS[provider].defaultModel;
     }
     
-    const prompt = `你是一位雅思阅读材料的专业撰写者。请根据以下单词列表，判断它们的主题，然后撰写一篇符合雅思阅读风格的学术短文。
+    const prompt = `你是一个专业的英语教师，擅长用有趣的故事帮助学生记忆单词。
+
+请根据以下单词列表，创作一个有趣、连贯的英文短故事（150-300词）：
 
 单词列表：${words.join(', ')}
 
-写作要求：
-1. 先分析这些单词的共同主题（如环境、科技、教育、健康、社会等）
-2. 围绕该主题撰写一篇200-350词的学术性短文
-3. 文章结构清晰：引言提出话题 → 主体段落展开论述 → 结论总结观点
-4. 语言风格要正式、客观，符合雅思阅读的学术风格
-5. 可以引用数据、研究或专家观点来增强说服力
-6. 所有单词必须自然融入文章，用 **word** 格式标记
-7. 单词要分散在文章各处，体现词汇在真实语境中的用法
+要求：
+1. 所有单词都必须自然地融入故事中
+2. 单词要分散在故事的各个位置，不要堆积在开头或结尾
+3. 故事要有逻辑性和趣味性，适合阅读记忆
+4. 每个单词在故事中用 **word** 格式标记（用双星号包围）
+5. [STORY]部分必须是纯英文，不要包含任何中文字符
+6. [DEFINITIONS]部分必须为每一个单词提供中文释义，不能遗漏任何单词
+7. [CHINESE]部分提供故事的完整中文翻译
 
-格式要求：
+请严格按以下格式输出：
+
 [STORY]
-(纯英文学术短文，单词用**word**标记，禁止出现任何中文)
+(纯英文故事，单词用**word**标记，不要有任何中文)
 
 [DEFINITIONS]
-word1: 中文释义（包含词性）
-word2: 中文释义（包含词性）
-（必须包含全部 ${words.length} 个单词，每行一个）
+word1: 中文释义
+word2: 中文释义
+（必须包含所有 ${words.length} 个单词的释义，每行一个）
 
 [CHINESE]
-文章的完整中文翻译`;
+故事的完整中文翻译`;
 
     const response = await fetch(apiUrl, {
         method: 'POST',
@@ -587,9 +978,6 @@ function renderStory() {
     renderPlainStory();
     renderChineseStory();
     renderQuizStory();
-    
-    // 后台预加载词根词缀
-    preloadEtymology();
 }
 
 // 创建带语音的单词元素
@@ -597,7 +985,7 @@ function createWordWithTooltip(word, showDefinitionInline = false) {
     const lowerWord = word.toLowerCase();
     const definition = currentDefinitions[lowerWord] || '暂无释义';
     
-    let html = `<span class="highlight" data-word="${lowerWord}" onclick="speakWord('${word}', event)">`;
+    let html = `<span class="highlight" data-word="${lowerWord}" onclick="speakWord('${word}')">`;
     html += word;
     html += `</span>`;
     
@@ -611,7 +999,7 @@ function createWordWithTooltip(word, showDefinitionInline = false) {
 }
 
 // 语音播放功能（点击触发）- 使用有道词典真人发音
-function speakWord(word, event) {
+function speakWord(word) {
     // 使用有道词典的真人发音（美式）
     const audioUrl = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&type=2`;
     
@@ -635,312 +1023,6 @@ function speakWord(word, event) {
             window.speechSynthesis.speak(utterance);
         }
     });
-    
-    // 显示词根词缀弹出标签
-    showEtymologyPopup(word, event);
-}
-
-// ==================== 词根词缀功能 ====================
-function loadEtymologyCache() {
-    const stored = localStorage.getItem(ETYMOLOGY_KEY);
-    if (stored) {
-        try {
-            etymologyCache = JSON.parse(stored);
-        } catch (e) {
-            etymologyCache = {};
-        }
-    }
-}
-
-function saveEtymologyCache() {
-    localStorage.setItem(ETYMOLOGY_KEY, JSON.stringify(etymologyCache));
-}
-
-// 预加载所有当前单词的词根词缀
-async function preloadEtymology() {
-    const settings = loadSettings();
-    if (!settings.apiKey || currentWords.length === 0) return;
-    
-    // 找出未缓存的单词
-    const uncachedWords = currentWords.filter(w => !etymologyCache[w.toLowerCase()]);
-    if (uncachedWords.length === 0) return;
-    
-    console.log('后台预加载词根词缀:', uncachedWords);
-    
-    // 批量请求词根词缀（一次请求多个单词）
-    await fetchEtymologyBatch(uncachedWords);
-}
-
-// 批量获取词根词缀
-async function fetchEtymologyBatch(words) {
-    const settings = loadSettings();
-    if (!settings.apiKey || words.length === 0) return;
-    
-    const provider = settings.provider || 'openai';
-    let apiUrl, model;
-    
-    if (provider === 'custom') {
-        apiUrl = settings.customUrl;
-        model = settings.model || 'gpt-3.5-turbo';
-    } else {
-        apiUrl = API_CONFIGS[provider].url;
-        model = settings.model || API_CONFIGS[provider].defaultModel;
-    }
-    
-    const wordList = words.slice(0, 10).join(', '); // 最多10个词
-    
-    const prompt = `分析以下英文单词的词根词缀：${wordList}
-
-返回JSON数组（不要markdown代码块）：
-[{"word":"单词","parts":[{"part":"词根/词缀","meaning":"含义","type":"root/prefix/suffix"}],"origin":"词源","analysis":"说明"}]
-
-要求简洁，每个单词的analysis不超过15字。`;
-
-    try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15秒超时
-        
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${settings.apiKey}`
-            },
-            body: JSON.stringify({
-                model: model,
-                messages: [{ role: 'user', content: prompt }],
-                temperature: 0.2
-            }),
-            signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-
-        if (!response.ok) return;
-
-        const data = await response.json();
-        const content = data.choices[0].message.content;
-        
-        // 解析JSON数组
-        let etymologies;
-        try {
-            etymologies = JSON.parse(content);
-        } catch (e) {
-            const jsonMatch = content.match(/\[[\s\S]*\]/);
-            if (jsonMatch) {
-                etymologies = JSON.parse(jsonMatch[0]);
-            } else {
-                return;
-            }
-        }
-        
-        // 缓存所有结果
-        if (Array.isArray(etymologies)) {
-            etymologies.forEach(ety => {
-                if (ety.word) {
-                    etymologyCache[ety.word.toLowerCase()] = ety;
-                }
-            });
-            saveEtymologyCache();
-            console.log('词根词缀预加载完成');
-        }
-    } catch (err) {
-        console.log('批量获取词根词缀失败:', err.message);
-    }
-}
-
-function showEtymologyPopup(word, event) {
-    const popup = document.getElementById('etymologyPopup');
-    const wordEl = document.getElementById('etymologyWord');
-    const contentEl = document.getElementById('etymologyContent');
-    
-    wordEl.textContent = word;
-    
-    // 获取点击位置
-    let x, y;
-    if (event) {
-        x = event.clientX || event.pageX;
-        y = event.clientY || event.pageY;
-    } else {
-        x = window.innerWidth / 2;
-        y = window.innerHeight / 2;
-    }
-    
-    // 检查缓存
-    const lowerWord = word.toLowerCase();
-    if (etymologyCache[lowerWord]) {
-        contentEl.innerHTML = formatEtymology(etymologyCache[lowerWord]);
-    } else {
-        contentEl.innerHTML = '<div class="etymology-loading">分析词根词缀中...</div>';
-        fetchEtymology(word);
-    }
-    
-    // 显示弹出框
-    popup.classList.add('show');
-    
-    // 计算位置，确保不超出屏幕
-    const popupRect = popup.getBoundingClientRect();
-    const padding = 10;
-    
-    // 优先显示在点击位置右下方
-    let left = x + 10;
-    let top = y + 10;
-    
-    // 如果超出右边界，显示在左边
-    if (left + popupRect.width > window.innerWidth - padding) {
-        left = x - popupRect.width - 10;
-    }
-    
-    // 如果超出下边界，显示在上方
-    if (top + popupRect.height > window.innerHeight - padding) {
-        top = y - popupRect.height - 10;
-    }
-    
-    // 确保不超出左边界和上边界
-    left = Math.max(padding, left);
-    top = Math.max(padding, top);
-    
-    popup.style.left = left + 'px';
-    popup.style.top = top + 'px';
-}
-
-function hideEtymologyPopup() {
-    const popup = document.getElementById('etymologyPopup');
-    popup.classList.remove('show');
-}
-
-// 点击其他地方关闭弹出框
-document.addEventListener('click', (e) => {
-    const popup = document.getElementById('etymologyPopup');
-    if (popup && !popup.contains(e.target) && !e.target.classList.contains('highlight')) {
-        hideEtymologyPopup();
-    }
-});
-
-async function fetchEtymology(word) {
-    const settings = loadSettings();
-    
-    if (!settings.apiKey) {
-        const contentEl = document.getElementById('etymologyContent');
-        contentEl.innerHTML = '<div class="etymology-section"><span class="etymology-meaning">请先在设置中配置API</span></div>';
-        return;
-    }
-    
-    const provider = settings.provider || 'openai';
-    let apiUrl, model;
-    
-    if (provider === 'custom') {
-        apiUrl = settings.customUrl;
-        model = settings.model || 'gpt-3.5-turbo';
-    } else {
-        apiUrl = API_CONFIGS[provider].url;
-        model = settings.model || API_CONFIGS[provider].defaultModel;
-    }
-    
-    // 简化的 prompt
-    const prompt = `单词"${word}"的词根词缀分析，返回JSON（无代码块）：
-{"word":"${word}","parts":[{"part":"词根/词缀","meaning":"含义","type":"root/prefix/suffix"}],"origin":"词源","analysis":"简短说明"}`;
-
-    try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
-        
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${settings.apiKey}`
-            },
-            body: JSON.stringify({
-                model: model,
-                messages: [{ role: 'user', content: prompt }],
-                temperature: 0.2
-            }),
-            signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-
-        const data = await response.json();
-        const content = data.choices[0].message.content;
-        
-        // 解析JSON
-        let etymology;
-        try {
-            // 尝试直接解析
-            etymology = JSON.parse(content);
-        } catch (e) {
-            // 尝试从文本中提取JSON
-            const jsonMatch = content.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                etymology = JSON.parse(jsonMatch[0]);
-            } else {
-                throw new Error('无法解析返回内容');
-            }
-        }
-        
-        // 缓存结果
-        const lowerWord = word.toLowerCase();
-        etymologyCache[lowerWord] = etymology;
-        saveEtymologyCache();
-        
-        // 更新显示
-        const contentEl = document.getElementById('etymologyContent');
-        const currentWord = document.getElementById('etymologyWord').textContent;
-        if (currentWord.toLowerCase() === lowerWord) {
-            contentEl.innerHTML = formatEtymology(etymology);
-        }
-    } catch (err) {
-        console.error('获取词根词缀失败:', err);
-        const contentEl = document.getElementById('etymologyContent');
-        if (err.name === 'AbortError') {
-            contentEl.innerHTML = '<div class="etymology-section"><span class="etymology-meaning">请求超时，请重试</span></div>';
-        } else {
-            contentEl.innerHTML = '<div class="etymology-section"><span class="etymology-meaning">获取失败，请重试</span></div>';
-        }
-    }
-}
-
-function formatEtymology(etymology) {
-    let html = '';
-    
-    // 词源
-    if (etymology.origin) {
-        html += `<div class="etymology-section">
-            <div class="etymology-label">词源</div>
-            <div class="etymology-value">${etymology.origin}</div>
-        </div>`;
-    }
-    
-    // 词根词缀拆解
-    if (etymology.parts && etymology.parts.length > 0) {
-        html += `<div class="etymology-section">
-            <div class="etymology-label">构词分析</div>
-            <div class="etymology-value">`;
-        
-        etymology.parts.forEach(part => {
-            const typeLabel = part.type === 'prefix' ? '前缀' : 
-                             part.type === 'suffix' ? '后缀' : '词根';
-            html += `<span class="etymology-root">${part.part}</span>
-                     <span class="etymology-meaning">(${typeLabel}: ${part.meaning})</span><br>`;
-        });
-        
-        html += `</div></div>`;
-    }
-    
-    // 分析说明
-    if (etymology.analysis) {
-        html += `<div class="etymology-section">
-            <div class="etymology-label">说明</div>
-            <div class="etymology-value">${etymology.analysis}</div>
-        </div>`;
-    }
-    
-    return html || '<div class="etymology-section"><span class="etymology-meaning">暂无词根词缀信息</span></div>';
 }
 
 function renderAnnotatedStory() {
@@ -1000,7 +1082,7 @@ function renderQuizStory() {
     html = html.replace(/\*\*([a-zA-Z]+)\*\*/g, (match, word) => {
         const lowerWord = word.toLowerCase();
         inputIndex++;
-        let result = `<span class="highlight" data-word="${lowerWord}" onclick="speakWord('${word}', event)">`;
+        let result = `<span class="highlight" data-word="${lowerWord}" onclick="speakWord('${word}')">`;
         result += word;
         result += `</span>`;
         result += ` <input type="text" class="quiz-input" data-word="${lowerWord}" data-index="${inputIndex}" placeholder="中文释义">`;
@@ -1405,7 +1487,6 @@ function loadLookupCache() {
 }
 
 function saveLookupCache() {
-    // 限制缓存大小，最多保存500个单词
     const keys = Object.keys(lookupCache);
     if (keys.length > 500) {
         const keysToRemove = keys.slice(0, keys.length - 500);
@@ -1415,11 +1496,9 @@ function saveLookupCache() {
 }
 
 function initLookupFeature() {
-    // 监听文本选择事件
     document.addEventListener('mouseup', handleTextSelection);
     document.addEventListener('touchend', handleTextSelection);
     
-    // 点击其他地方关闭弹窗
     document.addEventListener('mousedown', (e) => {
         const popup = document.getElementById('lookupPopup');
         if (popup && !popup.contains(e.target)) {
@@ -1429,20 +1508,15 @@ function initLookupFeature() {
 }
 
 function handleTextSelection(e) {
-    // 忽略点击弹窗内部
     const lookupPopup = document.getElementById('lookupPopup');
-    const etymologyPopup = document.getElementById('etymologyPopup');
-    if ((lookupPopup && lookupPopup.contains(e.target)) || 
-        (etymologyPopup && etymologyPopup.contains(e.target))) {
+    if (lookupPopup && lookupPopup.contains(e.target)) {
         return;
     }
     
-    // 延迟一点获取选中文本，确保选择完成
     setTimeout(() => {
         const selection = window.getSelection();
         const selectedText = selection.toString().trim();
         
-        // 检查是否是有效的英文单词（2-30个字母）
         if (selectedText && /^[a-zA-Z]{2,30}$/.test(selectedText)) {
             showLookupPopup(selectedText, e);
         }
@@ -1458,11 +1532,9 @@ function showLookupPopup(word, event) {
     currentLookupWord = word.toLowerCase();
     wordEl.textContent = word;
     
-    // 重置添加按钮状态
     addBtn.textContent = '加入生词本';
     addBtn.classList.remove('added');
     
-    // 获取点击位置
     let x, y;
     if (event.changedTouches) {
         x = event.changedTouches[0].clientX;
@@ -1472,18 +1544,18 @@ function showLookupPopup(word, event) {
         y = event.clientY;
     }
     
-    // 检查缓存
-    if (lookupCache[currentLookupWord]) {
+    // 优先检查内置词典（瞬间响应）
+    if (BUILTIN_DICT[currentLookupWord]) {
+        contentEl.innerHTML = `<div class="lookup-definition">${BUILTIN_DICT[currentLookupWord]}</div>`;
+    } else if (lookupCache[currentLookupWord]) {
         contentEl.innerHTML = formatLookupResult(lookupCache[currentLookupWord]);
     } else {
         contentEl.innerHTML = '<div class="lookup-loading">查询中...</div>';
         fetchWordDefinition(word);
     }
     
-    // 显示弹窗
     popup.classList.add('show');
     
-    // 计算位置
     const popupRect = popup.getBoundingClientRect();
     const padding = 10;
     
@@ -1517,340 +1589,61 @@ function playLookupWord() {
     }
 }
 
-// 内置常用词词典（即时查询）
-const BUILTIN_DICT = {
-    // 常用词汇 - 可以根据需要扩展
-    "the": "定冠词，这，那",
-    "be": "v. 是；存在",
-    "to": "prep. 到；向；给",
-    "of": "prep. 的；属于",
-    "and": "conj. 和；与",
-    "a": "art. 一个",
-    "in": "prep. 在...里面",
-    "that": "pron. 那个；conj. 那",
-    "have": "v. 有；拥有",
-    "i": "pron. 我",
-    "it": "pron. 它",
-    "for": "prep. 为了；因为",
-    "not": "adv. 不；没有",
-    "on": "prep. 在...上面",
-    "with": "prep. 和...一起",
-    "he": "pron. 他",
-    "as": "prep. 作为；像",
-    "you": "pron. 你；你们",
-    "do": "v. 做；执行",
-    "at": "prep. 在",
-    "this": "pron. 这个",
-    "but": "conj. 但是",
-    "his": "pron. 他的",
-    "by": "prep. 通过；被",
-    "from": "prep. 从；来自",
-    "they": "pron. 他们",
-    "we": "pron. 我们",
-    "say": "v. 说",
-    "her": "pron. 她的",
-    "she": "pron. 她",
-    "or": "conj. 或者",
-    "an": "art. 一个",
-    "will": "v. 将要；愿意",
-    "my": "pron. 我的",
-    "one": "num. 一；pron. 一个人",
-    "all": "adj. 所有的",
-    "would": "v. 将会；愿意",
-    "there": "adv. 那里",
-    "their": "pron. 他们的",
-    "what": "pron. 什么",
-    "so": "adv. 如此；所以",
-    "up": "adv. 向上",
-    "out": "adv. 出去",
-    "if": "conj. 如果",
-    "about": "prep. 关于",
-    "who": "pron. 谁",
-    "get": "v. 得到；变得",
-    "which": "pron. 哪个",
-    "go": "v. 去；走",
-    "me": "pron. 我(宾格)",
-    "when": "adv. 什么时候",
-    "make": "v. 制作；使得",
-    "can": "v. 能够",
-    "like": "v. 喜欢；prep. 像",
-    "time": "n. 时间",
-    "no": "adv. 不；没有",
-    "just": "adv. 仅仅；刚刚",
-    "him": "pron. 他(宾格)",
-    "know": "v. 知道",
-    "take": "v. 拿；带",
-    "people": "n. 人们",
-    "into": "prep. 进入",
-    "year": "n. 年",
-    "your": "pron. 你的",
-    "good": "adj. 好的",
-    "some": "adj. 一些",
-    "could": "v. 能够(过去式)",
-    "them": "pron. 他们(宾格)",
-    "see": "v. 看见",
-    "other": "adj. 其他的",
-    "than": "conj. 比",
-    "then": "adv. 然后",
-    "now": "adv. 现在",
-    "look": "v. 看",
-    "only": "adv. 仅仅",
-    "come": "v. 来",
-    "its": "pron. 它的",
-    "over": "prep. 在...上方",
-    "think": "v. 想；认为",
-    "also": "adv. 也",
-    "back": "adv. 回；n. 背部",
-    "after": "prep. 在...之后",
-    "use": "v. 使用",
-    "two": "num. 二",
-    "how": "adv. 怎样",
-    "our": "pron. 我们的",
-    "work": "v. 工作；n. 工作",
-    "first": "adj. 第一的",
-    "well": "adv. 好；int. 嗯",
-    "way": "n. 方式；路",
-    "even": "adv. 甚至",
-    "new": "adj. 新的",
-    "want": "v. 想要",
-    "because": "conj. 因为",
-    "any": "adj. 任何的",
-    "these": "pron. 这些",
-    "give": "v. 给",
-    "day": "n. 天；日",
-    "most": "adj. 最多的",
-    "us": "pron. 我们(宾格)",
-    "environment": "n. 环境",
-    "climate": "n. 气候",
-    "change": "n./v. 变化；改变",
-    "global": "adj. 全球的",
-    "sustainable": "adj. 可持续的",
-    "development": "n. 发展",
-    "research": "n./v. 研究",
-    "technology": "n. 技术",
-    "education": "n. 教育",
-    "society": "n. 社会",
-    "economic": "adj. 经济的",
-    "political": "adj. 政治的",
-    "cultural": "adj. 文化的",
-    "significant": "adj. 重要的；显著的",
-    "evidence": "n. 证据",
-    "analysis": "n. 分析",
-    "theory": "n. 理论",
-    "approach": "n./v. 方法；接近",
-    "process": "n. 过程；v. 处理",
-    "system": "n. 系统",
-    "however": "adv. 然而",
-    "therefore": "adv. 因此",
-    "although": "conj. 虽然",
-    "whether": "conj. 是否",
-    "provide": "v. 提供",
-    "require": "v. 需要；要求",
-    "include": "v. 包括",
-    "consider": "v. 考虑",
-    "suggest": "v. 建议；暗示",
-    "indicate": "v. 表明；指示",
-    "achieve": "v. 实现；达到",
-    "affect": "v. 影响",
-    "effect": "n. 效果；影响",
-    "impact": "n./v. 影响；冲击",
-    "increase": "v./n. 增加",
-    "decrease": "v./n. 减少",
-    "improve": "v. 提高；改善",
-    "reduce": "v. 减少",
-    "maintain": "v. 维持；保持",
-    "determine": "v. 决定；确定",
-    "establish": "v. 建立",
-    "individual": "n. 个人；adj. 个人的",
-    "community": "n. 社区；共同体",
-    "government": "n. 政府",
-    "international": "adj. 国际的",
-    "national": "adj. 国家的",
-    "local": "adj. 当地的",
-    "specific": "adj. 具体的；特定的",
-    "particular": "adj. 特别的；特定的",
-    "general": "adj. 一般的；总的",
-    "common": "adj. 共同的；普通的",
-    "similar": "adj. 相似的",
-    "different": "adj. 不同的",
-    "important": "adj. 重要的",
-    "necessary": "adj. 必要的",
-    "possible": "adj. 可能的",
-    "available": "adj. 可用的",
-    "likely": "adj. 可能的",
-    "potential": "adj. 潜在的；n. 潜力"
-};
-
 async function fetchWordDefinition(word) {
     const lowerWord = word.toLowerCase();
     
-    // 1. 首先检查内置词典（即时）
-    if (BUILTIN_DICT[lowerWord]) {
-        const result = {
-            word: word,
-            phonetic: '',
-            definitions: [{ pos: '', meaning: BUILTIN_DICT[lowerWord] }]
-        };
-        lookupCache[lowerWord] = result;
-        saveLookupCache();
-        updateLookupDisplay(lowerWord, result);
-        return;
-    }
-    
-    // 2. 尝试 Free Dictionary API（快速、无跨域）
+    // 使用 Free Dictionary API（免费、无跨域）
     try {
-        const result = await fetchFreeDictionaryAPI(word);
-        if (result) {
-            lookupCache[lowerWord] = result;
-            saveLookupCache();
-            updateLookupDisplay(lowerWord, result);
-            return;
-        }
-    } catch (err) {
-        console.log('Free Dictionary API失败:', err.message);
-    }
-    
-    // 3. 备用方案：使用AI API
-    await fetchWordDefinitionAI(word);
-}
-
-function updateLookupDisplay(lowerWord, result) {
-    const contentEl = document.getElementById('lookupContent');
-    const currentWord = document.getElementById('lookupWord').textContent.toLowerCase();
-    if (currentWord === lowerWord) {
-        contentEl.innerHTML = formatLookupResult(result);
-    }
-}
-
-// Free Dictionary API（免费、快速、支持跨域）
-async function fetchFreeDictionaryAPI(word) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    
-    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
         const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`, {
             signal: controller.signal
         });
         
         clearTimeout(timeoutId);
         
-        if (!response.ok) {
-            if (response.status === 404) {
-                return null; // 单词不存在
+        if (response.ok) {
+            const data = await response.json();
+            if (data && data[0]) {
+                const entry = data[0];
+                const result = {
+                    word: word,
+                    phonetic: entry.phonetic || (entry.phonetics && entry.phonetics[0] && entry.phonetics[0].text) || '',
+                    definitions: []
+                };
+                
+                // 提取释义
+                if (entry.meanings) {
+                    entry.meanings.forEach(meaning => {
+                        if (meaning.definitions && meaning.definitions[0]) {
+                            result.definitions.push({
+                                pos: meaning.partOfSpeech || '',
+                                meaning: meaning.definitions[0].definition || ''
+                            });
+                        }
+                    });
+                }
+                
+                // 缓存并显示
+                lookupCache[lowerWord] = result;
+                saveLookupCache();
+                
+                const contentEl = document.getElementById('lookupContent');
+                const currentWord = document.getElementById('lookupWord').textContent.toLowerCase();
+                if (currentWord === lowerWord) {
+                    contentEl.innerHTML = formatLookupResult(result);
+                }
+                return;
             }
-            throw new Error('请求失败');
         }
-        
-        const data = await response.json();
-        
-        if (data && data[0]) {
-            const entry = data[0];
-            const phonetic = entry.phonetic || (entry.phonetics && entry.phonetics[0] && entry.phonetics[0].text) || '';
-            
-            const definitions = [];
-            if (entry.meanings) {
-                entry.meanings.forEach(meaning => {
-                    const pos = meaning.partOfSpeech || '';
-                    if (meaning.definitions && meaning.definitions[0]) {
-                        definitions.push({
-                            pos: pos,
-                            meaning: meaning.definitions[0].definition // 英文释义
-                        });
-                    }
-                });
-            }
-            
-            return {
-                word: word,
-                phonetic: phonetic,
-                definitions: definitions.length > 0 ? definitions : [{ pos: '', meaning: 'No definition found' }]
-            };
-        }
-        
-        return null;
     } catch (err) {
-        clearTimeout(timeoutId);
-        throw err;
-    }
-}
-
-// AI API备用方案
-async function fetchWordDefinitionAI(word) {
-    const settings = loadSettings();
-    
-    if (!settings.apiKey) {
-        const contentEl = document.getElementById('lookupContent');
-        contentEl.innerHTML = '<div class="lookup-definition">未找到释义</div>';
-        return;
+        console.log('Free Dictionary API失败:', err.message);
     }
     
-    const provider = settings.provider || 'openai';
-    let apiUrl, model;
-    
-    if (provider === 'custom') {
-        apiUrl = settings.customUrl;
-        model = settings.model || 'gpt-3.5-turbo';
-    } else {
-        apiUrl = API_CONFIGS[provider].url;
-        model = settings.model || API_CONFIGS[provider].defaultModel;
-    }
-    
-    const prompt = `翻译英文单词"${word}"，返回JSON（无代码块）：
-{"word":"${word}","phonetic":"音标","definitions":[{"pos":"词性","meaning":"中文释义"}]}
-要求简洁。`;
-
-    try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 6000);
-        
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${settings.apiKey}`
-            },
-            body: JSON.stringify({
-                model: model,
-                messages: [{ role: 'user', content: prompt }],
-                temperature: 0.2
-            }),
-            signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-
-        const data = await response.json();
-        const content = data.choices[0].message.content;
-        
-        let result;
-        try {
-            result = JSON.parse(content);
-        } catch (e) {
-            const jsonMatch = content.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                result = JSON.parse(jsonMatch[0]);
-            } else {
-                throw new Error('解析失败');
-            }
-        }
-        
-        // 缓存结果
-        lookupCache[currentLookupWord] = result;
-        saveLookupCache();
-        updateLookupDisplay(currentLookupWord, result);
-    } catch (err) {
-        console.error('查询单词失败:', err);
-        const contentEl = document.getElementById('lookupContent');
-        if (err.name === 'AbortError') {
-            contentEl.innerHTML = '<div class="lookup-definition">查询超时</div>';
-        } else {
-            contentEl.innerHTML = '<div class="lookup-definition">未找到释义</div>';
-        }
-    }
+    // 如果API失败，显示提示
+    const contentEl = document.getElementById('lookupContent');
+    contentEl.innerHTML = '<div class="lookup-definition">未找到释义</div>';
 }
 
 function formatLookupResult(result) {
@@ -1861,7 +1654,7 @@ function formatLookupResult(result) {
     }
     
     if (result.definitions && result.definitions.length > 0) {
-        result.definitions.forEach(def => {
+        result.definitions.slice(0, 3).forEach(def => {
             html += `<div class="lookup-definition">`;
             if (def.pos) {
                 html += `<span class="lookup-pos">${def.pos}</span>`;
@@ -1881,11 +1674,9 @@ function addLookupWordToList() {
     const addBtn = document.querySelector('.lookup-add-btn');
     if (addBtn.classList.contains('added')) return;
     
-    // 获取当前输入框的内容
     const wordInput = document.getElementById('wordInput');
     const currentText = wordInput.value.trim();
     
-    // 检查是否已存在
     const existingWords = currentText.split(/[\s,，、;；\n]+/).filter(w => w.trim());
     if (existingWords.map(w => w.toLowerCase()).includes(currentLookupWord)) {
         addBtn.textContent = '已存在';
@@ -1893,17 +1684,14 @@ function addLookupWordToList() {
         return;
     }
     
-    // 添加到输入框
     if (currentText) {
         wordInput.value = currentText + '\n' + currentLookupWord;
     } else {
         wordInput.value = currentLookupWord;
     }
     
-    // 触发字数统计更新
     wordInput.dispatchEvent(new Event('input'));
     
-    // 更新按钮状态
     addBtn.textContent = '已添加';
     addBtn.classList.add('added');
 }
